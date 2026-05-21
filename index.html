@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AgriVision Live</title>
+    <title>AgriVision</title>
 </head>
 
-<body style="margin:0; background:black; color:#00ff88; text-align:center; font-family:Arial;">
+<body style="margin:0; background:black; color:#00ff88; font-family:Arial; text-align:center;">
 
 <h2>AgriVision Live Scanner</h2>
 
 <div style="position:relative; display:inline-block;">
-    <video id="video" width="500" playsinline muted></video>
+    <video id="video" width="500" autoplay playsinline muted></video>
 
-    <canvas id="overlayCanvas"
+    <canvas id="overlay"
         style="position:absolute; top:0; left:0; pointer-events:none;">
     </canvas>
 </div>
@@ -23,44 +23,40 @@
 
 <br><br>
 
-<p id="status">System ready</p>
+<p id="status">System Ready</p>
 
 <script>
 
 let video = document.getElementById("video");
-let canvas = document.getElementById("overlayCanvas");
+let canvas = document.getElementById("overlay");
 let ctx = canvas.getContext("2d");
 
-// ✅ START CAMERA (BACK CAMERA FOR IPHONE)
-function startCamera() {
+// ✅ YOUR BACKEND URL (LOCKED IN)
+const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
+
+// ✅ START CAMERA (FORCE BACK CAMERA)
+async function startCamera() {
 
     document.getElementById("status").innerText = "Requesting camera...";
 
-    navigator.mediaDevices.getUserMedia({
-        video: {
-            facingMode: { exact: "environment" } // ✅ FORCE BACK CAMERA
-        },
-        audio: false
-    })
-    .then(function(stream) {
+    try {
+        let stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+            audio: false
+        });
 
         video.srcObject = stream;
+        await video.play();
 
-        video.setAttribute("playsinline", true);
-        video.muted = true;
-
-        return video.play();
-    })
-    .then(function() {
         document.getElementById("status").innerText = "Camera started ✅";
-    })
-    .catch(function(err) {
+
+    } catch (err) {
 
         document.getElementById("status").innerText =
             "Camera FAILED: " + err.name;
 
-        alert("Camera error: " + err.message);
-    });
+        alert(err.message);
+    }
 }
 
 
@@ -85,9 +81,9 @@ function scanFrame() {
         let formData = new FormData();
         formData.append("file", blob, "frame.jpg");
 
-        document.getElementById("status").innerText = "Analyzing frame...";
+        document.getElementById("status").innerText = "Analyzing...";
 
-        fetch("/analyze", {
+        fetch(BACKEND_URL, {
             method: "POST",
             body: formData
         })
@@ -97,7 +93,7 @@ function scanFrame() {
             drawBoxes(data.detections);
 
             document.getElementById("status").innerText =
-                "Detected " + data.detections.length + " issue(s) ✅";
+                "Detected " + data.detections.length + " issue(s)";
 
         })
         .catch(err => {
@@ -112,7 +108,7 @@ function scanFrame() {
 }
 
 
-// ✅ DRAW DETECTIONS
+// ✅ DRAW BOXES
 function drawBoxes(detections) {
 
     canvas.width = video.clientWidth;
