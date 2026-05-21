@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AgriVision Live</title>
+</head>
+
+<body style="margin:0; background:black; color:#00ff88; text-align:center; font-family:Arial;">
+
+<h2>AgriVision Live Scanner</h2>
+
+<div style="position:relative; display:inline-block;">
+    <video id="video" width="500" playsinline muted></video>
+
+    <canvas id="overlayCanvas"
+        style="position:absolute; top:0; left:0; pointer-events:none;">
+    </canvas>
+</div>
+
+<br><br>
+
+<button onclick="startCamera()">Start Camera</button>
+<button onclick="scanFrame()">Scan Frame</button>
+
+<br><br>
+
+<p id="status">System ready</p>
+
+<script>
+
+let video = document.getElementById("video");
+let canvas = document.getElementById("overlayCanvas");
+let ctx = canvas.getContext("2d");
+
+// ✅ START CAMERA (BACK CAMERA FOR IPHONE)
+function startCamera() {
+
+    document.getElementById("status").innerText = "Requesting camera...";
+
+    navigator.mediaDevices.getUserMedia({
+        video: {
+            facingMode: { exact: "environment" } // ✅ FORCE BACK CAMERA
+        },
+        audio: false
+    })
+    .then(function(stream) {
+
+        video.srcObject = stream;
+
+        video.setAttribute("playsinline", true);
+        video.muted = true;
+
+        return video.play();
+    })
+    .then(function() {
+        document.getElementById("status").innerText = "Camera started ✅";
+    })
+    .catch(function(err) {
+
+        document.getElementById("status").innerText =
+            "Camera FAILED: " + err.name;
+
+        alert("Camera error: " + err.message);
+    });
+}
+
+
+// ✅ SCAN FRAME
+function scanFrame() {
+
+    if (!video.srcObject) {
+        alert("Start camera first");
+        return;
+    }
+
+    let tempCanvas = document.createElement("canvas");
+    let tempCtx = tempCanvas.getContext("2d");
+
+    tempCanvas.width = video.videoWidth;
+    tempCanvas.height = video.videoHeight;
+
+    tempCtx.drawImage(video, 0, 0);
+
+    tempCanvas.toBlob(blob => {
+
+        let formData = new FormData();
+        formData.append("file", blob, "frame.jpg");
+
+        document.getElementById("status").innerText = "Analyzing frame...";
+
+        fetch("/analyze", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+
+            drawBoxes(data.detections);
+
+            document.getElementById("status").innerText =
+                "Detected " + data.detections.length + " issue(s) ✅";
+
+        })
+        .catch(err => {
+
+            document.getElementById("status").innerText =
+                "Backend error ❌";
+
+            console.log(err);
+        });
+
+    }, "image/jpeg");
+}
+
+
+// ✅ DRAW DETECTIONS
+function drawBoxes(detections) {
+
+    canvas.width = video.clientWidth;
+    canvas.height = video.clientHeight;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    detections.forEach(d => {
+
+        let scaleX = canvas.width / video.videoWidth;
+        let scaleY = canvas.height / video.videoHeight;
+
+        let x = d.bbox[0] * scaleX;
+        let y = d.bbox[1] * scaleY;
+        let w = (d.bbox[2] - d.bbox[0]) * scaleX;
+        let h = (d.bbox[3] - d.bbox[1]) * scaleY;
+
+        ctx.strokeStyle = "#00ff88";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = "#00ff88";
+        ctx.font = "14px Arial";
+
+        ctx.fillText(
+            d.issue + " (" + Math.floor(d.confidence * 100) + "%)",
+            x,
+            y - 5
+        );
+    });
+}
+
+</script>
+
+</body>
+</html>
