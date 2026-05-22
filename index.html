@@ -71,9 +71,9 @@
 
 <body>
 
-<!-- ✅ TOP BAR -->
+<!-- ✅ FIXED LOGO -->
 <div class="top-bar">
-    https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png
+    <img src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png">
     <h3>AgriVision</h3>
 </div>
 
@@ -111,7 +111,7 @@ let step = 0;
 // ✅ START CAMERA
 async function startCamera() {
 
-    startBtn.style.display = "none"; // ✅ HIDE BUTTON
+    startBtn.style.display = "none";
 
     document.getElementById("status").innerText = "Starting...";
 
@@ -181,7 +181,7 @@ function scanFrame() {
 }
 
 
-// ✅ DRAW BOXES
+// ✅ DRAW
 function drawBoxes(detections) {
 
     canvas.width = video.clientWidth;
@@ -215,7 +215,7 @@ function drawBoxes(detections) {
 }
 
 
-// ✅ TAP FOR QUESTIONS
+// ✅ TAP QUESTIONS
 video.addEventListener("click", () => {
 
     if (!currentIssue) return;
@@ -225,7 +225,7 @@ video.addEventListener("click", () => {
 });
 
 
-// ✅ QUESTIONS UI
+// ✅ QUESTIONS
 function askQuestion() {
 
     let qDiv = document.getElementById("questions");
@@ -254,8 +254,8 @@ function askQuestion() {
 
     else if (step === 3) {
 
-        let recommendation = currentIssue === "Chlorosis"
-            ? "Check nitrogen levels"
+        let rec = currentIssue === "Chlorosis"
+            ? "Check nitrogen"
             : currentIssue === "Leaf Burn"
             ? "Reduce nutrients/light"
             : "Inspect further";
@@ -264,7 +264,7 @@ function askQuestion() {
             <h3>Diagnosis ✅</h3>
             <p>${currentIssue}</p>
             <p>${confidence}% confidence</p>
-            <p>${recommendation}</p>
+            <p>${rec}</p>
 
             <button onclick="resetFlow()">Close</button>
         `;
@@ -275,7 +275,7 @@ function askQuestion() {
 }
 
 
-// ✅ CONFIDENCE LOGIC
+// ✅ CONFIDENCE
 function nextStep(answer) {
 
     if (step === 1) {
