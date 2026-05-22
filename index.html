@@ -6,8 +6,9 @@
 
 <body style="margin:0; background:black; color:#00ff88; font-family:Arial; text-align:center;">
 
-<!-- ✅ CORRECT LOGO TAG -->
-<img src="logo.png" style="width:200px; margin-top:20px;">
+<!-- ✅ FIXED LOGO -->
+<img src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png"
+     style="width:200px; margin-top:20px;">
 
 <h2>AgriVision Crop Intelligence</h2>
 
@@ -42,9 +43,8 @@ let currentIssue = "";
 let step = 0;
 let confidence = 0;
 
-// ✅ CAMERA
+// CAMERA
 async function startCamera() {
-
     document.getElementById("status").innerText = "Starting camera...";
 
     try {
@@ -56,14 +56,12 @@ async function startCamera() {
         await video.play();
 
         document.getElementById("status").innerText = "Camera ready ✅";
-
     } catch {
         document.getElementById("status").innerText = "Camera FAILED";
     }
 }
 
-
-// ✅ SCAN
+// SCAN
 function scanFrame() {
 
     if (!video.srcObject) {
@@ -100,14 +98,12 @@ function scanFrame() {
 
             step = 1;
             askQuestion();
-
         });
 
     }, "image/jpeg");
 }
 
-
-// ✅ DRAW BOXES
+// DRAW BOXES
 function drawBoxes(detections) {
 
     canvas.width = video.clientWidth;
@@ -140,8 +136,7 @@ function drawBoxes(detections) {
     });
 }
 
-
-// ✅ QUESTION FLOW
+// QUESTIONS
 function askQuestion() {
 
     let qDiv = document.getElementById("questions");
@@ -203,14 +198,14 @@ function askQuestion() {
     qDiv.appendChild(container);
 }
 
-
-// ✅ UPDATE CONFIDENCE
+// CONFIDENCE
 function nextStep(answer) {
 
     if (step === 1) {
         confidence = answer ? confidence + 10 : confidence - 5;
         step = 2;
     }
+
     else if (step === 2) {
         confidence = answer ? confidence + 5 : confidence - 5;
         step = 3;
@@ -222,8 +217,7 @@ function nextStep(answer) {
     askQuestion();
 }
 
-
-// ✅ RESET
+// RESET
 function resetApp() {
 
     document.getElementById("questions").innerHTML = "";
