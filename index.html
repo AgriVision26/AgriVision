@@ -2,33 +2,88 @@
 <html>
 <head>
     <title>AgriVision</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            margin:0;
+            background:#0b0f14;
+            color:#00ff88;
+            font-family:Arial;
+            text-align:center;
+        }
+
+        .container {
+            max-width: 600px;
+            margin:auto;
+            padding:20px;
+        }
+
+        .card {
+            background:#111820;
+            border-radius:15px;
+            padding:20px;
+            margin-top:15px;
+            box-shadow:0 0 20px rgba(0,255,136,0.1);
+        }
+
+        button {
+            background:#00ff88;
+            color:black;
+            border:none;
+            padding:10px 20px;
+            margin:5px;
+            border-radius:10px;
+            font-size:16px;
+            cursor:pointer;
+        }
+
+        button:hover {
+            background:#00cc6a;
+        }
+
+        video {
+            border-radius:15px;
+            width:100%;
+        }
+
+        canvas {
+            border-radius:15px;
+        }
+    </style>
+
 </head>
 
-<body style="margin:0; background:black; color:#00ff88; font-family:Arial; text-align:center;">
+<body>
+
+<div class="container">
 
 <!-- ✅ LOGO -->
 <img src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png"
-     style="width:200px; margin-top:20px;">
+     style="width:160px; margin-bottom:10px;">
 
-<h2>AgriVision Live AI Scanner</h2>
+<h2>AgriVision AI Scanner</h2>
 
-<div style="position:relative; display:inline-block;">
-    <video id="video" width="500" autoplay playsinline muted></video>
+<div style="position:relative; display:inline-block; width:100%;">
+    <video id="video" autoplay playsinline muted></video>
 
     <canvas id="overlay"
-        style="position:absolute; top:0; left:0; pointer-events:none;">
+        style="position:absolute; top:0; left:0; pointer-events:none; width:100%;">
     </canvas>
 </div>
 
-<br><br>
+<div class="card">
 
 <button onclick="startCamera()">Start Camera</button>
 
-<br><br>
-
 <p id="status">System Ready</p>
 
-<div id="questions" style="margin-top:20px;"></div>
+</div>
+
+<div id="questions"></div>
+
+</div>
 
 <script>
 
@@ -43,7 +98,8 @@ let currentIssue = "";
 let confidence = 0;
 let step = 0;
 
-// ✅ START CAMERA + LIVE SCAN
+
+// ✅ START CAMERA
 async function startCamera() {
 
     document.getElementById("status").innerText = "Starting camera...";
@@ -66,15 +122,17 @@ async function startCamera() {
     }
 }
 
-// ✅ AUTO SCAN LOOP
+
+// ✅ AUTO SCAN
 function autoScan() {
 
     if (!scanning) return;
 
     scanFrame();
 
-    setTimeout(autoScan, 2000); // every 2 seconds
+    setTimeout(autoScan, 2000);
 }
+
 
 // ✅ SCAN
 function scanFrame() {
@@ -103,7 +161,6 @@ function scanFrame() {
 
             drawBoxes(data.detections);
 
-            // ✅ ALWAYS KEEP LATEST DETECTION
             currentIssue = data.detections[0].issue;
             confidence = Math.floor(data.detections[0].confidence * 100);
 
@@ -111,6 +168,7 @@ function scanFrame() {
 
     }, "image/jpeg");
 }
+
 
 // ✅ DRAW BOXES
 function drawBoxes(detections) {
@@ -131,11 +189,11 @@ function drawBoxes(detections) {
         let h = (d.bbox[3] - d.bbox[1]) * scaleY;
 
         ctx.strokeStyle = "#00ff88";
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2;
         ctx.strokeRect(x, y, w, h);
 
         ctx.fillStyle = "#00ff88";
-        ctx.font = "14px Arial";
+        ctx.font = "12px Arial";
 
         ctx.fillText(
             d.issue + " (" + Math.floor(d.confidence * 100) + "%)",
@@ -145,12 +203,16 @@ function drawBoxes(detections) {
     });
 }
 
-// ✅ TAP VIDEO TO START QUESTIONS
+
+// ✅ TAP CAMERA TO ASK QUESTIONS
 video.addEventListener("click", () => {
+
+    if (!currentIssue) return;
 
     step = 1;
     askQuestion();
 });
+
 
 // ✅ QUESTION FLOW
 function askQuestion() {
@@ -158,15 +220,11 @@ function askQuestion() {
     let qDiv = document.getElementById("questions");
     qDiv.innerHTML = "";
 
-    let block = document.createElement("div");
+    let card = document.createElement("div");
+    card.className = "card";
 
-    block.style.border = "2px solid #00ff88";
-    block.style.padding = "20px";
-    block.style.margin = "10px";
-
-    // ✅ QUESTION 1
     if (step === 1) {
-        block.innerHTML = `
+        card.innerHTML = `
             <h3>${currentIssue}</h3>
             <p>Is this affecting multiple leaves?</p>
 
@@ -175,9 +233,8 @@ function askQuestion() {
         `;
     }
 
-    // ✅ QUESTION 2
     else if (step === 2) {
-        block.innerHTML = `
+        card.innerHTML = `
             <p>Have you recently changed nutrients?</p>
 
             <button onclick="nextStep(true)">YES</button>
@@ -185,7 +242,6 @@ function askQuestion() {
         `;
     }
 
-    // ✅ FINAL RESULT
     else if (step === 3) {
 
         let recommendation = "";
@@ -200,31 +256,29 @@ function askQuestion() {
             recommendation = "Further inspection required.";
         }
 
-        block.innerHTML = `
-            <h2>Final Diagnosis ✅</h2>
+        card.innerHTML = `
+            <h2>Diagnosis ✅</h2>
 
             <p><b>Issue:</b> ${currentIssue}</p>
             <p><b>Confidence:</b> ${confidence}%</p>
 
-            <p><b>Recommendation:</b></p>
             <p>${recommendation}</p>
 
-            <br>
             <button onclick="resetFlow()">Close</button>
         `;
     }
 
-    qDiv.appendChild(block);
+    qDiv.appendChild(card);
 }
 
-// ✅ UPDATE CONFIDENCE BASED ON ANSWERS
+
+// ✅ CONFIDENCE UPDATE
 function nextStep(answer) {
 
     if (step === 1) {
         confidence = answer ? confidence + 10 : confidence - 5;
         step = 2;
     }
-
     else if (step === 2) {
         confidence = answer ? confidence + 5 : confidence - 5;
         step = 3;
@@ -236,9 +290,9 @@ function nextStep(answer) {
     askQuestion();
 }
 
-// ✅ RESET QUESTIONS
-function resetFlow() {
 
+// ✅ RESET
+function resetFlow() {
     document.getElementById("questions").innerHTML = "";
 }
 
