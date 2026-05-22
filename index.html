@@ -6,6 +6,9 @@
 
 <body style="margin:0; background:black; color:#00ff88; font-family:Arial; text-align:center;">
 
+<!-- ✅ LOGO -->
+<img src="logo.png" style="width:200px; margin-top:20px;">
+
 <h2>AgriVision Crop Intelligence</h2>
 
 <div style="position:relative; display:inline-block;">
@@ -37,6 +40,7 @@ const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
 
 let currentIssue = "";
 let step = 0;
+let confidence = 0;
 
 // ✅ CAMERA
 async function startCamera() {
@@ -45,8 +49,7 @@ async function startCamera() {
 
     try {
         let stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
-            audio: false
+            video: { facingMode: "environment" }
         });
 
         video.srcObject = stream;
@@ -54,11 +57,11 @@ async function startCamera() {
 
         document.getElementById("status").innerText = "Camera ready ✅";
 
-    } catch (err) {
-        document.getElementById("status").innerText =
-            "Camera FAILED";
+    } catch {
+        document.getElementById("status").innerText = "Camera FAILED";
     }
 }
+
 
 // ✅ SCAN
 function scanFrame() {
@@ -92,18 +95,17 @@ function scanFrame() {
 
             drawBoxes(data.detections);
 
-            // ✅ Start question flow
             currentIssue = data.detections[0].issue;
-            step = 1;
+            confidence = Math.floor(data.detections[0].confidence * 100);
 
+            step = 1;
             askQuestion();
 
-            document.getElementById("status").innerText =
-                "Detected " + data.detections.length + " issue(s)";
         });
 
     }, "image/jpeg");
 }
+
 
 // ✅ DRAW BOXES
 function drawBoxes(detections) {
@@ -138,6 +140,7 @@ function drawBoxes(detections) {
     });
 }
 
+
 // ✅ QUESTION FLOW
 function askQuestion() {
 
@@ -150,25 +153,28 @@ function askQuestion() {
     container.style.padding = "20px";
     container.style.margin = "10px";
 
+    // ✅ QUESTION 1
     if (step === 1) {
         container.innerHTML = `
             <h3>${currentIssue}</h3>
             <p>Is this affecting multiple leaves?</p>
 
-            <button onclick="nextStep()">YES</button>
-            <button onclick="nextStep()">NO</button>
+            <button onclick="nextStep(true)">YES</button>
+            <button onclick="nextStep(false)">NO</button>
         `;
     }
 
+    // ✅ QUESTION 2
     else if (step === 2) {
         container.innerHTML = `
             <p>Have you recently changed nutrients?</p>
 
-            <button onclick="nextStep()">YES</button>
-            <button onclick="nextStep()">NO</button>
+            <button onclick="nextStep(true)">YES</button>
+            <button onclick="nextStep(false)">NO</button>
         `;
     }
 
+    // ✅ FINAL RESULT
     else if (step === 3) {
 
         let recommendation = "";
@@ -177,7 +183,7 @@ function askQuestion() {
             recommendation = "Likely nitrogen deficiency. Adjust nutrients.";
         }
         else if (currentIssue === "Leaf Burn") {
-            recommendation = "Possible overfeeding or light stress. Reduce intensity.";
+            recommendation = "Possible overfeeding or light stress.";
         }
         else {
             recommendation = "Further inspection required.";
@@ -187,6 +193,8 @@ function askQuestion() {
             <h2>Final Diagnosis ✅</h2>
 
             <p><b>Issue:</b> ${currentIssue}</p>
+
+            <p><b>Confidence:</b> ${confidence}%</p>
 
             <p><b>Recommendation:</b></p>
             <p>${recommendation}</p>
@@ -199,13 +207,26 @@ function askQuestion() {
     qDiv.appendChild(container);
 }
 
-// ✅ STEP HANDLER
-function nextStep() {
 
-    step++;
+// ✅ UPDATE CONFIDENCE BASED ON ANSWERS
+function nextStep(answer) {
+
+    if (step === 1) {
+        confidence = answer ? confidence + 10 : confidence - 5;
+        step = 2;
+    }
+    else if (step === 2) {
+        confidence = answer ? confidence + 5 : confidence - 5;
+        step = 3;
+    }
+
+    // clamp between 0–100
+    if (confidence > 100) confidence = 100;
+    if (confidence < 0) confidence = 0;
 
     askQuestion();
 }
+
 
 // ✅ RESET
 function resetApp() {
@@ -218,4 +239,3 @@ function resetApp() {
 
 </body>
 </html>
-``
