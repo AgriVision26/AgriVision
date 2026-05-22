@@ -14,17 +14,26 @@
             text-align:center;
         }
 
+        /* ✅ PINNED CAMERA */
+        .camera-container {
+            position:sticky;
+            top:0;
+            background:#0b0f14;
+            z-index:1000;
+            padding-bottom:10px;
+        }
+
         .logo {
-            width:100px;
+            width:90px;
             display:block;
-            margin:15px auto;
+            margin:10px auto 5px auto;
         }
 
         video {
             width:100%;
-            max-height:55vh;
+            max-height:50vh;
             object-fit:cover;
-            border-radius:15px;
+            border-radius:12px;
         }
 
         canvas {
@@ -32,7 +41,7 @@
             top:0;
             left:0;
             width:100%;
-            max-height:55vh;
+            max-height:50vh;
             pointer-events:none;
         }
 
@@ -42,6 +51,18 @@
             margin:5px;
             border-radius:10px;
             font-weight:bold;
+            background:#00ff88;
+            color:black;
+        }
+
+        .section {
+            margin-top:10px;
+        }
+
+        .list {
+            display:flex;
+            flex-wrap:wrap;
+            justify-content:center;
         }
 
         .issue-card {
@@ -49,13 +70,6 @@
             padding:10px;
             margin:5px;
             border-radius:10px;
-            color:white;
-        }
-
-        .list {
-            display:flex;
-            flex-wrap:wrap;
-            justify-content:center;
         }
 
         .question-card {
@@ -65,56 +79,50 @@
             border-radius:15px;
         }
 
-        .history-panel {
-            position:fixed;
-            bottom:0;
-            left:0;
-            width:100%;
-            background:#111820;
-            padding:10px;
-            max-height:30vh;
-            overflow-y:auto;
-        }
-
         .history-card {
             margin:5px;
-            padding:8px;
+            padding:10px;
             background:#1a222b;
             border-radius:10px;
-        }
-
-        .spacer {
-            height:160px;
         }
     </style>
 </head>
 
 <body>
 
-<img class="logo" src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png">
+<!-- ✅ PINNED CAMERA SECTION -->
+<div class="camera-container">
 
-<h2>AgriVision AI Scanner</h2>
+    https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png
 
-<div style="position:relative;">
-    <video id="video" autoplay playsinline muted></video>
-    <canvas id="overlay"></canvas>
-</div>
+    <h3>AgriVision AI Scanner</h3>
 
-<div>
+    <div style="position:relative;">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="overlay"></canvas>
+    </div>
+
     <button id="startBtn" onclick="startCamera()">Start Camera</button>
     <p id="status">Ready</p>
+
 </div>
 
-<h3>Detected Issues</h3>
-<div id="issues" class="list"></div>
+<!-- ✅ CONTENT AREA -->
+<div class="section">
 
-<div id="questions"></div>
+    <h3>Detected Issues</h3>
+    <div id="issues" class="list"></div>
 
-<div class="spacer"></div>
+    <div id="questions"></div>
 
-<div class="history-panel">
-    <h4>Scan History</h4>
+</div>
+
+<!-- ✅ SCROLL DOWN HISTORY -->
+<div class="section">
+
+    <h3>Scan History</h3>
     <div id="history"></div>
+
 </div>
 
 <script>
@@ -133,56 +141,15 @@ let confidence = 0;
 let step = 0;
 let scanning = false;
 
-// ✅ ISSUE COLORS
+// ✅ COLORS
 const issueColors = {
-    "Chlorosis": "#FFD700",   // yellow
-    "Leaf Burn": "#FF4C4C",   // red
+    "Chlorosis": "#FFD700",
+    "Leaf Burn": "#FF4C4C",
     "Default": "#00ff88"
 };
 
-
-// ✅ GET COLOR
 function getColor(issue) {
     return issueColors[issue] || issueColors["Default"];
-}
-
-
-// ✅ LOAD HISTORY
-function loadHistory() {
-    let history = JSON.parse(localStorage.getItem("scans") || "[]");
-
-    let div = document.getElementById("history");
-    div.innerHTML = "";
-
-    history.reverse().forEach(item => {
-
-        let card = document.createElement("div");
-        card.className = "history-card";
-
-        card.innerHTML = `
-            <b>${item.issue}</b> - ${item.confidence}%<br>
-            <small>${item.time}</small>
-        `;
-
-        div.appendChild(card);
-    });
-}
-
-
-// ✅ SAVE SCAN
-function saveScan(issue, conf) {
-
-    let history = JSON.parse(localStorage.getItem("scans") || "[]");
-
-    history.push({
-        issue: issue,
-        confidence: conf,
-        time: new Date().toLocaleTimeString()
-    });
-
-    localStorage.setItem("scans", JSON.stringify(history));
-
-    loadHistory();
 }
 
 
@@ -190,7 +157,6 @@ function saveScan(issue, conf) {
 async function startCamera() {
 
     startBtn.style.display = "none";
-
     document.getElementById("status").innerText = "Starting...";
 
     try {
@@ -258,7 +224,7 @@ function scanFrame() {
 }
 
 
-// ✅ DRAW BOXES WITH COLORS
+// ✅ DRAW BOXES (COLORED)
 function drawBoxes(detections) {
 
     canvas.width = video.clientWidth;
@@ -289,7 +255,7 @@ function drawBoxes(detections) {
 }
 
 
-// ✅ SHOW COLORED ISSUE CARDS
+// ✅ SHOW ISSUES
 function showIssues() {
 
     let div = document.getElementById("issues");
@@ -302,13 +268,14 @@ function showIssues() {
 
         let card = document.createElement("div");
         card.className = "issue-card";
-
         card.style.border = "2px solid " + color;
 
         card.innerHTML = `
             <b style="color:${color}">${d.issue}</b><br>
             ${conf}%<br>
-            <button style="background:${color}" onclick="selectIssue('${d.issue}', ${conf})">Analyze</button>
+            <button style="background:${color}" onclick="selectIssue('${d.issue}', ${conf})">
+                Analyze
+            </button>
         `;
 
         div.appendChild(card);
@@ -318,11 +285,9 @@ function showIssues() {
 
 // ✅ SELECT ISSUE
 function selectIssue(issue, conf) {
-
     currentIssue = issue;
     confidence = conf;
     step = 1;
-
     askQuestion();
 }
 
@@ -343,7 +308,6 @@ function askQuestion() {
             <button onclick="nextStep(false)">NO</button>
         `;
     }
-
     else if (step === 2) {
         card.innerHTML = `
             <p>Nutrient change recently?</p>
@@ -351,14 +315,7 @@ function askQuestion() {
             <button onclick="nextStep(false)">NO</button>
         `;
     }
-
-    else if (step === 3) {
-
-        let rec = currentIssue === "Chlorosis"
-            ? "Check nitrogen"
-            : currentIssue === "Leaf Burn"
-            ? "Reduce nutrients/light"
-            : "Inspect further";
+    else {
 
         saveScan(currentIssue, confidence);
 
@@ -366,7 +323,6 @@ function askQuestion() {
             <h3>Diagnosis ✅</h3>
             <p>${currentIssue}</p>
             <p>${confidence}% confidence</p>
-            <p>${rec}</p>
             <button onclick="resetFlow()">Close</button>
         `;
     }
@@ -382,23 +338,54 @@ function nextStep(ans) {
     if (step === 1) {
         confidence += ans ? 10 : -5;
         step = 2;
-    }
-
-    else if (step === 2) {
+    } else {
         confidence += ans ? 5 : -5;
         step = 3;
     }
 
-    if (confidence > 100) confidence = 100;
-    if (confidence < 0) confidence = 0;
+    confidence = Math.max(0, Math.min(100, confidence));
 
     askQuestion();
 }
 
 
-// ✅ RESET
-function resetFlow() {
-    document.getElementById("questions").innerHTML = "";
+// ✅ SAVE HISTORY
+function saveScan(issue, conf) {
+
+    let history = JSON.parse(localStorage.getItem("scans") || "[]");
+
+    history.push({
+        issue,
+        confidence: conf,
+        time: new Date().toLocaleTimeString()
+    });
+
+    localStorage.setItem("scans", JSON.stringify(history));
+
+    loadHistory();
+}
+
+
+// ✅ LOAD HISTORY
+function loadHistory() {
+
+    let history = JSON.parse(localStorage.getItem("scans") || "[]");
+
+    let div = document.getElementById("history");
+    div.innerHTML = "";
+
+    history.reverse().forEach(item => {
+
+        let card = document.createElement("div");
+        card.className = "history-card";
+
+        card.innerHTML = `
+            <b>${item.issue}</b> - ${item.confidence}%<br>
+            <small>${item.time}</small>
+        `;
+
+        div.appendChild(card);
+    });
 }
 
 
@@ -409,3 +396,4 @@ loadHistory();
 
 </body>
 </html>
+``
