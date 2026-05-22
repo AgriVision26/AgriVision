@@ -17,7 +17,7 @@
         .logo {
             width:100px;
             display:block;
-            margin:15px auto 5px auto;
+            margin:15px auto;
         }
 
         video {
@@ -45,23 +45,26 @@
             border-radius:10px;
         }
 
-        .issue-list {
-            display:flex;
-            flex-wrap:wrap;
-            justify-content:center;
-            margin:10px;
-        }
-
-        .issue-card {
+        .issue-card, .history-card {
             background:#111820;
             padding:10px;
             margin:5px;
             border-radius:10px;
         }
 
+        .list {
+            display:flex;
+            flex-wrap:wrap;
+            justify-content:center;
+        }
+
+        .section-title {
+            margin-top:15px;
+        }
+
         .question-card {
-            margin:10px;
             background:#111820;
+            margin:10px;
             padding:15px;
             border-radius:15px;
         }
@@ -75,22 +78,27 @@
 
 <h2>AgriVision AI Scanner</h2>
 
-<!-- ✅ CAMERA -->
+<!-- CAMERA -->
 <div style="position:relative;">
     <video id="video" autoplay playsinline muted></video>
     <canvas id="overlay"></canvas>
 </div>
 
-<!-- ✅ START BUTTON -->
+<!-- START -->
 <div>
     <button id="startBtn" onclick="startCamera()">Start Camera</button>
     <p id="status">Ready</p>
 </div>
 
-<!-- ✅ MULTI ISSUE LIST -->
-<div id="issues" class="issue-list"></div>
+<!-- ISSUES -->
+<h3 class="section-title">Detected Issues</h3>
+<div id="issues" class="list"></div>
 
-<!-- ✅ QUESTIONS -->
+<!-- HISTORY -->
+<h3 class="section-title">Scan History</h3>
+<div id="history" class="list"></div>
+
+<!-- QUESTIONS -->
 <div id="questions"></div>
 
 <script>
@@ -103,11 +111,51 @@ let startBtn = document.getElementById("startBtn");
 
 const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
 
-let scanning = false;
 let detections = [];
 let currentIssue = "";
 let confidence = 0;
 let step = 0;
+let scanning = false;
+
+
+// ✅ LOAD SAVED HISTORY
+function loadHistory() {
+    let history = JSON.parse(localStorage.getItem("scans") || "[]");
+
+    let div = document.getElementById("history");
+    div.innerHTML = "";
+
+    history.reverse().forEach(item => {
+
+        let card = document.createElement("div");
+        card.className = "history-card";
+
+        card.innerHTML = `
+            <b>${item.issue}</b><br>
+            ${item.confidence}%<br>
+            <small>${item.time}</small>
+        `;
+
+        div.appendChild(card);
+    });
+}
+
+
+// ✅ SAVE SCAN
+function saveScan(issue, conf) {
+
+    let history = JSON.parse(localStorage.getItem("scans") || "[]");
+
+    history.push({
+        issue: issue,
+        confidence: conf,
+        time: new Date().toLocaleTimeString()
+    });
+
+    localStorage.setItem("scans", JSON.stringify(history));
+
+    loadHistory();
+}
 
 
 // ✅ START CAMERA
@@ -183,7 +231,7 @@ function scanFrame() {
 }
 
 
-// ✅ DRAW BOXES
+// ✅ DRAW
 function drawBoxes(detections) {
 
     canvas.width = video.clientWidth;
@@ -202,40 +250,31 @@ function drawBoxes(detections) {
         let h = (d.bbox[3] - d.bbox[1]) * scaleY;
 
         ctx.strokeStyle = "#00ff88";
-        ctx.lineWidth = 2;
         ctx.strokeRect(x, y, w, h);
-
-        ctx.fillStyle = "#00ff88";
-        ctx.font = "12px Arial";
-
-        ctx.fillText(
-            d.issue + " (" + Math.floor(d.confidence * 100) + "%)",
-            x,
-            y - 5
-        );
     });
 }
 
 
-// ✅ SHOW ALL ISSUES
+// ✅ SHOW ISSUES
 function showIssues() {
 
-    let issuesDiv = document.getElementById("issues");
-    issuesDiv.innerHTML = "";
+    let div = document.getElementById("issues");
+    div.innerHTML = "";
 
     detections.forEach(d => {
 
         let card = document.createElement("div");
         card.className = "issue-card";
 
+        let conf = Math.floor(d.confidence * 100);
+
         card.innerHTML = `
-            <b>${d.issue}</b><br>
-            ${Math.floor(d.confidence * 100)}%
-            <br>
-            <button onclick="selectIssue('${d.issue}', ${Math.floor(d.confidence * 100)})">Analyze</button>
+            ${d.issue}<br>
+            ${conf}%<br>
+            <button onclick="selectIssue('${d.issue}', ${conf})">Analyze</button>
         `;
 
-        issuesDiv.appendChild(card);
+        div.appendChild(card);
     });
 }
 
@@ -245,13 +284,13 @@ function selectIssue(issue, conf) {
 
     currentIssue = issue;
     confidence = conf;
-
     step = 1;
+
     askQuestion();
 }
 
 
-// ✅ QUESTION FLOW
+// ✅ QUESTIONS
 function askQuestion() {
 
     let qDiv = document.getElementById("questions");
@@ -263,7 +302,6 @@ function askQuestion() {
         card.innerHTML = `
             <h3>${currentIssue}</h3>
             <p>Affects multiple leaves?</p>
-
             <button onclick="nextStep(true)">YES</button>
             <button onclick="nextStep(false)">NO</button>
         `;
@@ -272,7 +310,6 @@ function askQuestion() {
     else if (step === 2) {
         card.innerHTML = `
             <p>Nutrient change recently?</p>
-
             <button onclick="nextStep(true)">YES</button>
             <button onclick="nextStep(false)">NO</button>
         `;
@@ -286,12 +323,13 @@ function askQuestion() {
             ? "Reduce nutrients/light"
             : "Inspect further";
 
+        saveScan(currentIssue, confidence); // ✅ SAVE HERE
+
         card.innerHTML = `
             <h3>Diagnosis ✅</h3>
             <p>${currentIssue}</p>
             <p>${confidence}% confidence</p>
             <p>${rec}</p>
-
             <button onclick="resetFlow()">Close</button>
         `;
     }
@@ -301,14 +339,13 @@ function askQuestion() {
 }
 
 
-// ✅ CONFIDENCE UPDATE
+// ✅ CONFIDENCE
 function nextStep(ans) {
 
     if (step === 1) {
         confidence += ans ? 10 : -5;
         step = 2;
     }
-
     else if (step === 2) {
         confidence += ans ? 5 : -5;
         step = 3;
@@ -325,6 +362,10 @@ function nextStep(ans) {
 function resetFlow() {
     document.getElementById("questions").innerHTML = "";
 }
+
+
+// ✅ LOAD HISTORY ON PAGE LOAD
+loadHistory();
 
 </script>
 
