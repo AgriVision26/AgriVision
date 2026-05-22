@@ -8,7 +8,6 @@
 
 <h2>AgriVision Crop Intelligence</h2>
 
-<!-- CAMERA -->
 <div style="position:relative; display:inline-block;">
     <video id="video" width="500" autoplay playsinline muted></video>
 
@@ -26,7 +25,6 @@
 
 <p id="status">System Ready</p>
 
-<!-- QUESTIONS / RESULTS -->
 <div id="questions" style="margin-top:20px;"></div>
 
 <script>
@@ -37,7 +35,10 @@ let ctx = canvas.getContext("2d");
 
 const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
 
-// ✅ START CAMERA
+let currentIssue = "";
+let step = 0;
+
+// ✅ CAMERA
 async function startCamera() {
 
     document.getElementById("status").innerText = "Starting camera...";
@@ -59,7 +60,7 @@ async function startCamera() {
     }
 }
 
-// ✅ SCAN FRAME
+// ✅ SCAN
 function scanFrame() {
 
     if (!video.srcObject) {
@@ -90,16 +91,19 @@ function scanFrame() {
         .then(data => {
 
             drawBoxes(data.detections);
-            showQuestions(data.detections);
+
+            // ✅ Start question flow
+            currentIssue = data.detections[0].issue;
+            step = 1;
+
+            askQuestion();
 
             document.getElementById("status").innerText =
                 "Detected " + data.detections.length + " issue(s)";
-
         });
 
     }, "image/jpeg");
 }
-
 
 // ✅ DRAW BOXES
 function drawBoxes(detections) {
@@ -134,83 +138,78 @@ function drawBoxes(detections) {
     });
 }
 
-
-// ✅ SHOW QUESTIONS
-function showQuestions(detections) {
+// ✅ QUESTION FLOW
+function askQuestion() {
 
     let qDiv = document.getElementById("questions");
     qDiv.innerHTML = "";
 
-    detections.forEach(d => {
+    let container = document.createElement("div");
 
-        let block = document.createElement("div");
+    container.style.border = "2px solid #00ff88";
+    container.style.padding = "20px";
+    container.style.margin = "10px";
 
-        block.style.border = "1px solid #00ff88";
-        block.style.margin = "10px";
-        block.style.padding = "10px";
-
-        block.innerHTML = `
-            <h3>${d.issue}</h3>
+    if (step === 1) {
+        container.innerHTML = `
+            <h3>${currentIssue}</h3>
             <p>Is this affecting multiple leaves?</p>
 
-            <button onclick="answer('${d.issue}', 'YES')">YES</button>
-            <button onclick="answer('${d.issue}', 'NO')">NO</button>
+            <button onclick="nextStep()">YES</button>
+            <button onclick="nextStep()">NO</button>
         `;
+    }
 
-        qDiv.appendChild(block);
-    });
+    else if (step === 2) {
+        container.innerHTML = `
+            <p>Have you recently changed nutrients?</p>
+
+            <button onclick="nextStep()">YES</button>
+            <button onclick="nextStep()">NO</button>
+        `;
+    }
+
+    else if (step === 3) {
+
+        let recommendation = "";
+
+        if (currentIssue === "Chlorosis") {
+            recommendation = "Likely nitrogen deficiency. Adjust nutrients.";
+        }
+        else if (currentIssue === "Leaf Burn") {
+            recommendation = "Possible overfeeding or light stress. Reduce intensity.";
+        }
+        else {
+            recommendation = "Further inspection required.";
+        }
+
+        container.innerHTML = `
+            <h2>Final Diagnosis ✅</h2>
+
+            <p><b>Issue:</b> ${currentIssue}</p>
+
+            <p><b>Recommendation:</b></p>
+            <p>${recommendation}</p>
+
+            <br>
+            <button onclick="resetApp()">Scan Again</button>
+        `;
+    }
+
+    qDiv.appendChild(container);
 }
 
+// ✅ STEP HANDLER
+function nextStep() {
 
-// ✅ HANDLE ANSWER (THIS IS THE FIX)
-function answer(issue, response) {
+    step++;
 
-    let qDiv = document.getElementById("questions");
-    qDiv.innerHTML = "";
-
-    let result = document.createElement("div");
-
-    result.style.border = "2px solid #00ff88";
-    result.style.margin = "20px";
-    result.style.padding = "20px";
-
-    let recommendation = "";
-
-    if (issue === "Chlorosis") {
-        recommendation = (response === "YES")
-            ? "High likelihood nutrient deficiency. Check nitrogen levels."
-            : "Minor chlorosis. Monitor plant.";
-    }
-
-    else if (issue === "Leaf Burn") {
-        recommendation = (response === "YES")
-            ? "Possible overfeeding. Reduce nutrients."
-            : "Localized burn. Check lighting.";
-    }
-
-    else {
-        recommendation = "Further inspection recommended.";
-    }
-
-    result.innerHTML = `
-        <h2>Diagnosis Result ✅</h2>
-
-        <p><b>Issue:</b> ${issue}</p>
-        <p><b>Your Answer:</b> ${response}</p>
-
-        <p><b>Recommendation:</b></p>
-        <p>${recommendation}</p>
-
-        <br>
-        <button onclick="resetApp()">Scan Again</button>
-    `;
-
-    qDiv.appendChild(result);
+    askQuestion();
 }
 
-
-// ✅ RESET SYSTEM
+// ✅ RESET
 function resetApp() {
+
     document.getElementById("questions").innerHTML = "";
     document.getElementById("status").innerText = "Ready for next scan";
 }
@@ -219,3 +218,4 @@ function resetApp() {
 
 </body>
 </html>
+``
