@@ -14,7 +14,6 @@
             text-align:center;
         }
 
-        /* ✅ PINNED CAMERA */
         .camera-container {
             position:sticky;
             top:0;
@@ -23,11 +22,11 @@
             padding-bottom:10px;
         }
 
-        /* ✅ LOGO FIXED */
+        /* ✅ LOGO FIX (THIS IS WHAT WAS MISSING BEFORE) */
         .logo {
             width:90px;
             display:block;
-            margin:10px auto 5px auto;
+            margin:10px auto;
         }
 
         video {
@@ -76,7 +75,6 @@
             border-radius:15px;
         }
 
-        /* ✅ HISTORY MODAL */
         .history-modal {
             position:fixed;
             bottom:0;
@@ -100,11 +98,10 @@
 
 <body>
 
-<!-- ✅ CAMERA + LOGO -->
 <div class="camera-container">
 
-    <!-- ✅ FIXED LOGO -->
-    
+    <!-- ✅ THIS IS THE CORRECT LOGO LINE -->
+    <img class="logo" src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png">
 
     <h3>AgriVision AI Scanner</h3>
 
@@ -120,14 +117,12 @@
 
 </div>
 
-<!-- ✅ ISSUES -->
 <h3>Detected Issues</h3>
 <div id="issues" class="list"></div>
 
-<!-- ✅ QUESTIONS -->
 <div id="questions"></div>
 
-<!-- ✅ HISTORY PANEL -->
+<!-- ✅ HISTORY MODAL -->
 <div id="historyModal" class="history-modal">
     <h3>Scan History</h3>
     <div id="history"></div>
@@ -150,7 +145,7 @@ let confidence = 0;
 let step = 0;
 let scanning = false;
 
-// ✅ COLORS
+// ✅ COLOR MAP
 const issueColors = {
     "Chlorosis": "#FFD700",
     "Leaf Burn": "#FF4C4C",
@@ -162,9 +157,8 @@ function getColor(issue) {
 }
 
 
-// ✅ TOGGLE HISTORY
+// ✅ TOGGLE HISTORY PANEL
 function toggleHistory() {
-
     let modal = document.getElementById("historyModal");
 
     if (modal.style.display === "block") {
@@ -179,7 +173,6 @@ function toggleHistory() {
 async function startCamera() {
 
     startBtn.style.display = "none";
-
     document.getElementById("status").innerText = "Starting...";
 
     try {
@@ -247,7 +240,7 @@ function scanFrame() {
 }
 
 
-// ✅ DRAW BOXES
+// ✅ DRAW BOXES WITH COLORS
 function drawBoxes(detections) {
 
     canvas.width = video.clientWidth;
@@ -291,13 +284,14 @@ function showIssues() {
 
         let card = document.createElement("div");
         card.className = "issue-card";
-
         card.style.border = "2px solid " + color;
 
         card.innerHTML = `
             <b style="color:${color}">${d.issue}</b><br>
             ${conf}%<br>
-            <button style="background:${color}" onclick="selectIssue('${d.issue}', ${conf})">Analyze</button>
+            <button style="background:${color}" onclick="selectIssue('${d.issue}', ${conf})">
+                Analyze
+            </button>
         `;
 
         div.appendChild(card);
@@ -307,11 +301,9 @@ function showIssues() {
 
 // ✅ SELECT ISSUE
 function selectIssue(issue, conf) {
-
     currentIssue = issue;
     confidence = conf;
     step = 1;
-
     askQuestion();
 }
 
@@ -419,4 +411,3 @@ loadHistory();
 
 </body>
 </html>
-``
