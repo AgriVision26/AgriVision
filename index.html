@@ -6,8 +6,9 @@
 
 <body style="margin:0; background:black; color:#00ff88; font-family:Arial; text-align:center;">
 
-<h2>AgriVision Live Scanner</h2>
+<h2>AgriVision Crop Intelligence</h2>
 
+<!-- CAMERA -->
 <div style="position:relative; display:inline-block;">
     <video id="video" width="500" autoplay playsinline muted></video>
 
@@ -25,16 +26,21 @@
 
 <p id="status">System Ready</p>
 
+<!-- ✅ QUESTIONS WILL APPEAR HERE -->
+<div id="questions" style="margin-top:20px;"></div>
+
+
 <script>
 
 let video = document.getElementById("video");
 let canvas = document.getElementById("overlay");
 let ctx = canvas.getContext("2d");
 
-// ✅ YOUR BACKEND URL (LOCKED IN)
+// ✅ YOUR BACKEND
 const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
 
-// ✅ START CAMERA (FORCE BACK CAMERA)
+
+// ✅ STEP 2 — START CAMERA
 async function startCamera() {
 
     document.getElementById("status").innerText = "Requesting camera...";
@@ -51,16 +57,13 @@ async function startCamera() {
         document.getElementById("status").innerText = "Camera started ✅";
 
     } catch (err) {
-
         document.getElementById("status").innerText =
             "Camera FAILED: " + err.name;
-
-        alert(err.message);
     }
 }
 
 
-// ✅ SCAN FRAME
+// ✅ STEP 3 — SCAN FRAME
 function scanFrame() {
 
     if (!video.srcObject) {
@@ -92,6 +95,9 @@ function scanFrame() {
 
             drawBoxes(data.detections);
 
+            // ✅ STEP 4 — SHOW QUESTIONS
+            showQuestions(data.detections);
+
             document.getElementById("status").innerText =
                 "Detected " + data.detections.length + " issue(s)";
 
@@ -108,7 +114,7 @@ function scanFrame() {
 }
 
 
-// ✅ DRAW BOXES
+// ✅ STEP 5 — DRAW DETECTIONS
 function drawBoxes(detections) {
 
     canvas.width = video.clientWidth;
@@ -141,7 +147,45 @@ function drawBoxes(detections) {
     });
 }
 
+
+// ✅ STEP 6 — CREATE QUESTIONS UI
+function showQuestions(detections) {
+
+    let qDiv = document.getElementById("questions");
+
+    // clear old questions
+    qDiv.innerHTML = "";
+
+    detections.forEach(d => {
+
+        let block = document.createElement("div");
+
+        block.style.border = "1px solid #00ff88";
+        block.style.margin = "10px";
+        block.style.padding = "10px";
+
+        block.innerHTML = `
+            <p><b>${d.issue}</b></p>
+            <p>Is this affecting multiple leaves?</p>
+
+            <button onclick="answer('${d.issue}', 'YES')">YES</button>
+            <button onclick="answer('${d.issue}', 'NO')">NO</button>
+        `;
+
+        qDiv.appendChild(block);
+    });
+}
+
+
+// ✅ STEP 7 — HANDLE USER INPUT
+function answer(issue, response) {
+
+    alert("Response recorded:\n" + issue + " → " + response);
+
+}
+
 </script>
 
 </body>
 </html>
+``
