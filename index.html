@@ -6,11 +6,11 @@
 
 <body style="margin:0; background:black; color:#00ff88; font-family:Arial; text-align:center;">
 
-<!-- ✅ FIXED LOGO -->
+<!-- ✅ LOGO -->
 <img src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png"
-     style="width:200px; margin-top:20px;">
+     style="width:180px; margin-top:20px;">
 
-<h2>AgriVision Crop Intelligence</h2>
+<h2>AgriVision Live Scanner</h2>
 
 <div style="position:relative; display:inline-block;">
     <video id="video" width="500" autoplay playsinline muted></video>
@@ -23,7 +23,6 @@
 <br><br>
 
 <button onclick="startCamera()">Start Camera</button>
-<button onclick="scanFrame()">Scan Frame</button>
 
 <br><br>
 
@@ -39,12 +38,14 @@ let ctx = canvas.getContext("2d");
 
 const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
 
+let scanning = false;
 let currentIssue = "";
-let step = 0;
 let confidence = 0;
 
-// CAMERA
+
+// ✅ START CAMERA + AUTO SCAN
 async function startCamera() {
+
     document.getElementById("status").innerText = "Starting camera...";
 
     try {
@@ -55,19 +56,31 @@ async function startCamera() {
         video.srcObject = stream;
         await video.play();
 
-        document.getElementById("status").innerText = "Camera ready ✅";
+        document.getElementById("status").innerText = "Live scanning ✅";
+
+        // ✅ START AUTO SCANNING LOOP
+        scanning = true;
+        autoScan();
+
     } catch {
         document.getElementById("status").innerText = "Camera FAILED";
     }
 }
 
-// SCAN
-function scanFrame() {
 
-    if (!video.srcObject) {
-        alert("Start camera first");
-        return;
-    }
+// ✅ AUTO SCAN LOOP
+function autoScan() {
+
+    if (!scanning) return;
+
+    scanFrame();
+
+    setTimeout(autoScan, 2000); // every 2 seconds
+}
+
+
+// ✅ SCAN FRAME
+function scanFrame() {
 
     let tempCanvas = document.createElement("canvas");
     let tempCtx = tempCanvas.getContext("2d");
@@ -82,8 +95,6 @@ function scanFrame() {
         let formData = new FormData();
         formData.append("file", blob);
 
-        document.getElementById("status").innerText = "Analyzing...";
-
         fetch(BACKEND_URL, {
             method: "POST",
             body: formData
@@ -93,17 +104,17 @@ function scanFrame() {
 
             drawBoxes(data.detections);
 
+            // ✅ Always update current detection
             currentIssue = data.detections[0].issue;
             confidence = Math.floor(data.detections[0].confidence * 100);
 
-            step = 1;
-            askQuestion();
         });
 
     }, "image/jpeg");
 }
 
-// DRAW BOXES
+
+// ✅ DRAW BOXES
 function drawBoxes(detections) {
 
     canvas.width = video.clientWidth;
@@ -136,92 +147,42 @@ function drawBoxes(detections) {
     });
 }
 
-// QUESTIONS
-function askQuestion() {
+
+// ✅ OPTIONAL: TAP SCREEN TO ASK QUESTIONS
+video.addEventListener("click", () => {
+
+    showDiagnosis();
+});
+
+
+// ✅ SHOW DIAGNOSIS PANEL
+function showDiagnosis() {
 
     let qDiv = document.getElementById("questions");
-    qDiv.innerHTML = "";
 
-    let container = document.createElement("div");
+    let recommendation = "";
 
-    container.style.border = "2px solid #00ff88";
-    container.style.padding = "20px";
-    container.style.margin = "10px";
-
-    if (step === 1) {
-        container.innerHTML = `
-            <h3>${currentIssue}</h3>
-            <p>Is this affecting multiple leaves?</p>
-
-            <button onclick="nextStep(true)">YES</button>
-            <button onclick="nextStep(false)">NO</button>
-        `;
+    if (currentIssue === "Chlorosis") {
+        recommendation = "Likely nitrogen deficiency.";
+    }
+    else if (currentIssue === "Leaf Burn") {
+        recommendation = "Possible overfeeding or light stress.";
+    }
+    else {
+        recommendation = "Further inspection required.";
     }
 
-    else if (step === 2) {
-        container.innerHTML = `
-            <p>Have you recently changed nutrients?</p>
-
-            <button onclick="nextStep(true)">YES</button>
-            <button onclick="nextStep(false)">NO</button>
-        `;
-    }
-
-    else if (step === 3) {
-
-        let recommendation = "";
-
-        if (currentIssue === "Chlorosis") {
-            recommendation = "Likely nitrogen deficiency. Adjust nutrients.";
-        }
-        else if (currentIssue === "Leaf Burn") {
-            recommendation = "Possible overfeeding or light stress.";
-        }
-        else {
-            recommendation = "Further inspection required.";
-        }
-
-        container.innerHTML = `
-            <h2>Final Diagnosis ✅</h2>
+    qDiv.innerHTML = `
+        <div style="border:2px solid #00ff88; padding:20px; margin:10px;">
+            <h2>Live Diagnosis ✅</h2>
 
             <p><b>Issue:</b> ${currentIssue}</p>
             <p><b>Confidence:</b> ${confidence}%</p>
 
             <p><b>Recommendation:</b></p>
             <p>${recommendation}</p>
-
-            <br>
-            <button onclick="resetApp()">Scan Again</button>
-        `;
-    }
-
-    qDiv.appendChild(container);
-}
-
-// CONFIDENCE
-function nextStep(answer) {
-
-    if (step === 1) {
-        confidence = answer ? confidence + 10 : confidence - 5;
-        step = 2;
-    }
-
-    else if (step === 2) {
-        confidence = answer ? confidence + 5 : confidence - 5;
-        step = 3;
-    }
-
-    if (confidence > 100) confidence = 100;
-    if (confidence < 0) confidence = 0;
-
-    askQuestion();
-}
-
-// RESET
-function resetApp() {
-
-    document.getElementById("questions").innerHTML = "";
-    document.getElementById("status").innerText = "Ready for next scan";
+        </div>
+    `;
 }
 
 </script>
