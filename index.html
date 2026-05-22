@@ -37,12 +37,11 @@
         }
 
         button {
-            background:#00ff88;
-            color:black;
             border:none;
             padding:10px 15px;
             margin:5px;
             border-radius:10px;
+            font-weight:bold;
         }
 
         .issue-card {
@@ -50,6 +49,7 @@
             padding:10px;
             margin:5px;
             border-radius:10px;
+            color:white;
         }
 
         .list {
@@ -65,7 +65,6 @@
             border-radius:15px;
         }
 
-        /* ✅ PINNED HISTORY PANEL */
         .history-panel {
             position:fixed;
             bottom:0;
@@ -73,8 +72,6 @@
             width:100%;
             background:#111820;
             padding:10px;
-            border-top-left-radius:15px;
-            border-top-right-radius:15px;
             max-height:30vh;
             overflow-y:auto;
         }
@@ -87,45 +84,37 @@
         }
 
         .spacer {
-            height:160px; /* ✅ keeps content above history visible */
+            height:160px;
         }
     </style>
 </head>
 
 <body>
 
-<!-- ✅ LOGO -->
+<img class="logo" src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png">
 
 <h2>AgriVision AI Scanner</h2>
 
-<!-- CAMERA -->
 <div style="position:relative;">
     <video id="video" autoplay playsinline muted></video>
     <canvas id="overlay"></canvas>
 </div>
 
-<!-- CONTROLS -->
 <div>
     <button id="startBtn" onclick="startCamera()">Start Camera</button>
     <p id="status">Ready</p>
 </div>
 
-<!-- ISSUES -->
 <h3>Detected Issues</h3>
 <div id="issues" class="list"></div>
 
-<!-- QUESTIONS -->
 <div id="questions"></div>
 
-<!-- ✅ SPACER (PREVENT OVERLAP) -->
 <div class="spacer"></div>
 
-<!-- ✅ PINNED HISTORY -->
 <div class="history-panel">
-
     <h4>Scan History</h4>
     <div id="history"></div>
-
 </div>
 
 <script>
@@ -143,6 +132,19 @@ let currentIssue = "";
 let confidence = 0;
 let step = 0;
 let scanning = false;
+
+// ✅ ISSUE COLORS
+const issueColors = {
+    "Chlorosis": "#FFD700",   // yellow
+    "Leaf Burn": "#FF4C4C",   // red
+    "Default": "#00ff88"
+};
+
+
+// ✅ GET COLOR
+function getColor(issue) {
+    return issueColors[issue] || issueColors["Default"];
+}
 
 
 // ✅ LOAD HISTORY
@@ -249,13 +251,14 @@ function scanFrame() {
 
             drawBoxes(detections);
             showIssues();
+
         });
 
     }, "image/jpeg");
 }
 
 
-// ✅ DRAW
+// ✅ DRAW BOXES WITH COLORS
 function drawBoxes(detections) {
 
     canvas.width = video.clientWidth;
@@ -265,18 +268,28 @@ function drawBoxes(detections) {
 
     detections.forEach(d => {
 
+        let color = getColor(d.issue);
+
         let x = d.bbox[0];
         let y = d.bbox[1];
         let w = d.bbox[2] - d.bbox[0];
         let h = d.bbox[3] - d.bbox[1];
 
-        ctx.strokeStyle = "#00ff88";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
         ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = color;
+        ctx.fillText(
+            d.issue + " (" + Math.floor(d.confidence * 100) + "%)",
+            x,
+            y - 5
+        );
     });
 }
 
 
-// ✅ SHOW ISSUES
+// ✅ SHOW COLORED ISSUE CARDS
 function showIssues() {
 
     let div = document.getElementById("issues");
@@ -285,14 +298,17 @@ function showIssues() {
     detections.forEach(d => {
 
         let conf = Math.floor(d.confidence * 100);
+        let color = getColor(d.issue);
 
         let card = document.createElement("div");
         card.className = "issue-card";
 
+        card.style.border = "2px solid " + color;
+
         card.innerHTML = `
-            ${d.issue}<br>
+            <b style="color:${color}">${d.issue}</b><br>
             ${conf}%<br>
-            <button onclick="selectIssue('${d.issue}', ${conf})">Analyze</button>
+            <button style="background:${color}" onclick="selectIssue('${d.issue}', ${conf})">Analyze</button>
         `;
 
         div.appendChild(card);
@@ -351,7 +367,6 @@ function askQuestion() {
             <p>${currentIssue}</p>
             <p>${confidence}% confidence</p>
             <p>${rec}</p>
-
             <button onclick="resetFlow()">Close</button>
         `;
     }
@@ -387,7 +402,7 @@ function resetFlow() {
 }
 
 
-// ✅ LOAD HISTORY ON START
+// ✅ INIT
 loadHistory();
 
 </script>
