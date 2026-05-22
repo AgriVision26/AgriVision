@@ -6,7 +6,7 @@
 
 <body style="margin:0; background:black; color:#00ff88; font-family:Arial; text-align:center;">
 
-<!-- ✅ LOGO (FIXED CORRECTLY) -->
+<!-- ✅ CORRECT LOGO TAG -->
 <img src="logo.png" style="width:200px; margin-top:20px;">
 
 <h2>AgriVision Crop Intelligence</h2>
@@ -216,7 +216,6 @@ function nextStep(answer) {
         step = 3;
     }
 
-    // clamp values
     if (confidence > 100) confidence = 100;
     if (confidence < 0) confidence = 0;
 
