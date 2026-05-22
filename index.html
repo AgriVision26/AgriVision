@@ -6,7 +6,7 @@
 
 <body style="margin:0; background:black; color:#00ff88; font-family:Arial; text-align:center;">
 
-<!-- ✅ LOGO -->
+<!-- ✅ LOGO (FIXED CORRECTLY) -->
 <img src="logo.png" style="width:200px; margin-top:20px;">
 
 <h2>AgriVision Crop Intelligence</h2>
@@ -153,7 +153,6 @@ function askQuestion() {
     container.style.padding = "20px";
     container.style.margin = "10px";
 
-    // ✅ QUESTION 1
     if (step === 1) {
         container.innerHTML = `
             <h3>${currentIssue}</h3>
@@ -164,7 +163,6 @@ function askQuestion() {
         `;
     }
 
-    // ✅ QUESTION 2
     else if (step === 2) {
         container.innerHTML = `
             <p>Have you recently changed nutrients?</p>
@@ -174,7 +172,6 @@ function askQuestion() {
         `;
     }
 
-    // ✅ FINAL RESULT
     else if (step === 3) {
 
         let recommendation = "";
@@ -193,7 +190,6 @@ function askQuestion() {
             <h2>Final Diagnosis ✅</h2>
 
             <p><b>Issue:</b> ${currentIssue}</p>
-
             <p><b>Confidence:</b> ${confidence}%</p>
 
             <p><b>Recommendation:</b></p>
@@ -208,7 +204,7 @@ function askQuestion() {
 }
 
 
-// ✅ UPDATE CONFIDENCE BASED ON ANSWERS
+// ✅ UPDATE CONFIDENCE
 function nextStep(answer) {
 
     if (step === 1) {
@@ -220,7 +216,7 @@ function nextStep(answer) {
         step = 3;
     }
 
-    // clamp between 0–100
+    // clamp values
     if (confidence > 100) confidence = 100;
     if (confidence < 0) confidence = 0;
 
