@@ -8,9 +8,9 @@
 
 <!-- ✅ LOGO -->
 <img src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png"
-     style="width:180px; margin-top:20px;">
+     style="width:200px; margin-top:20px;">
 
-<h2>AgriVision Live Scanner</h2>
+<h2>AgriVision Live AI Scanner</h2>
 
 <div style="position:relative; display:inline-block;">
     <video id="video" width="500" autoplay playsinline muted></video>
@@ -41,9 +41,9 @@ const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
 let scanning = false;
 let currentIssue = "";
 let confidence = 0;
+let step = 0;
 
-
-// ✅ START CAMERA + AUTO SCAN
+// ✅ START CAMERA + LIVE SCAN
 async function startCamera() {
 
     document.getElementById("status").innerText = "Starting camera...";
@@ -58,7 +58,6 @@ async function startCamera() {
 
         document.getElementById("status").innerText = "Live scanning ✅";
 
-        // ✅ START AUTO SCANNING LOOP
         scanning = true;
         autoScan();
 
@@ -66,7 +65,6 @@ async function startCamera() {
         document.getElementById("status").innerText = "Camera FAILED";
     }
 }
-
 
 // ✅ AUTO SCAN LOOP
 function autoScan() {
@@ -78,8 +76,7 @@ function autoScan() {
     setTimeout(autoScan, 2000); // every 2 seconds
 }
 
-
-// ✅ SCAN FRAME
+// ✅ SCAN
 function scanFrame() {
 
     let tempCanvas = document.createElement("canvas");
@@ -102,9 +99,11 @@ function scanFrame() {
         .then(res => res.json())
         .then(data => {
 
+            if (!data.detections || data.detections.length === 0) return;
+
             drawBoxes(data.detections);
 
-            // ✅ Always update current detection
+            // ✅ ALWAYS KEEP LATEST DETECTION
             currentIssue = data.detections[0].issue;
             confidence = Math.floor(data.detections[0].confidence * 100);
 
@@ -112,7 +111,6 @@ function scanFrame() {
 
     }, "image/jpeg");
 }
-
 
 // ✅ DRAW BOXES
 function drawBoxes(detections) {
@@ -147,42 +145,101 @@ function drawBoxes(detections) {
     });
 }
 
-
-// ✅ OPTIONAL: TAP SCREEN TO ASK QUESTIONS
+// ✅ TAP VIDEO TO START QUESTIONS
 video.addEventListener("click", () => {
 
-    showDiagnosis();
+    step = 1;
+    askQuestion();
 });
 
-
-// ✅ SHOW DIAGNOSIS PANEL
-function showDiagnosis() {
+// ✅ QUESTION FLOW
+function askQuestion() {
 
     let qDiv = document.getElementById("questions");
+    qDiv.innerHTML = "";
 
-    let recommendation = "";
+    let block = document.createElement("div");
 
-    if (currentIssue === "Chlorosis") {
-        recommendation = "Likely nitrogen deficiency.";
-    }
-    else if (currentIssue === "Leaf Burn") {
-        recommendation = "Possible overfeeding or light stress.";
-    }
-    else {
-        recommendation = "Further inspection required.";
+    block.style.border = "2px solid #00ff88";
+    block.style.padding = "20px";
+    block.style.margin = "10px";
+
+    // ✅ QUESTION 1
+    if (step === 1) {
+        block.innerHTML = `
+            <h3>${currentIssue}</h3>
+            <p>Is this affecting multiple leaves?</p>
+
+            <button onclick="nextStep(true)">YES</button>
+            <button onclick="nextStep(false)">NO</button>
+        `;
     }
 
-    qDiv.innerHTML = `
-        <div style="border:2px solid #00ff88; padding:20px; margin:10px;">
-            <h2>Live Diagnosis ✅</h2>
+    // ✅ QUESTION 2
+    else if (step === 2) {
+        block.innerHTML = `
+            <p>Have you recently changed nutrients?</p>
+
+            <button onclick="nextStep(true)">YES</button>
+            <button onclick="nextStep(false)">NO</button>
+        `;
+    }
+
+    // ✅ FINAL RESULT
+    else if (step === 3) {
+
+        let recommendation = "";
+
+        if (currentIssue === "Chlorosis") {
+            recommendation = "Likely nitrogen deficiency. Adjust nutrients.";
+        }
+        else if (currentIssue === "Leaf Burn") {
+            recommendation = "Possible overfeeding or light stress.";
+        }
+        else {
+            recommendation = "Further inspection required.";
+        }
+
+        block.innerHTML = `
+            <h2>Final Diagnosis ✅</h2>
 
             <p><b>Issue:</b> ${currentIssue}</p>
             <p><b>Confidence:</b> ${confidence}%</p>
 
             <p><b>Recommendation:</b></p>
             <p>${recommendation}</p>
-        </div>
-    `;
+
+            <br>
+            <button onclick="resetFlow()">Close</button>
+        `;
+    }
+
+    qDiv.appendChild(block);
+}
+
+// ✅ UPDATE CONFIDENCE BASED ON ANSWERS
+function nextStep(answer) {
+
+    if (step === 1) {
+        confidence = answer ? confidence + 10 : confidence - 5;
+        step = 2;
+    }
+
+    else if (step === 2) {
+        confidence = answer ? confidence + 5 : confidence - 5;
+        step = 3;
+    }
+
+    if (confidence > 100) confidence = 100;
+    if (confidence < 0) confidence = 0;
+
+    askQuestion();
+}
+
+// ✅ RESET QUESTIONS
+function resetFlow() {
+
+    document.getElementById("questions").innerHTML = "";
 }
 
 </script>
