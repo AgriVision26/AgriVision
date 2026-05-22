@@ -14,7 +14,6 @@
             text-align:center;
         }
 
-        /* ✅ LOGO */
         .logo {
             width:100px;
             display:block;
@@ -37,32 +36,41 @@
             pointer-events:none;
         }
 
-        .controls {
-            margin:10px;
-        }
-
         button {
             background:#00ff88;
             color:black;
             border:none;
-            padding:12px 25px;
+            padding:10px 15px;
+            margin:5px;
             border-radius:10px;
-            font-size:16px;
         }
 
-        .card {
+        .issue-list {
+            display:flex;
+            flex-wrap:wrap;
+            justify-content:center;
+            margin:10px;
+        }
+
+        .issue-card {
+            background:#111820;
+            padding:10px;
+            margin:5px;
+            border-radius:10px;
+        }
+
+        .question-card {
             margin:10px;
             background:#111820;
             padding:15px;
             border-radius:15px;
         }
     </style>
-
 </head>
 
 <body>
 
-<!-- ✅ CLEAN CENTERED LOGO -->
+<!-- ✅ LOGO -->
 <img class="logo" src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png">
 
 <h2>AgriVision AI Scanner</h2>
@@ -73,11 +81,14 @@
     <canvas id="overlay"></canvas>
 </div>
 
-<!-- ✅ CONTROLS -->
-<div class="controls">
+<!-- ✅ START BUTTON -->
+<div>
     <button id="startBtn" onclick="startCamera()">Start Camera</button>
     <p id="status">Ready</p>
 </div>
+
+<!-- ✅ MULTI ISSUE LIST -->
+<div id="issues" class="issue-list"></div>
 
 <!-- ✅ QUESTIONS -->
 <div id="questions"></div>
@@ -93,6 +104,7 @@ let startBtn = document.getElementById("startBtn");
 const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
 
 let scanning = false;
+let detections = [];
 let currentIssue = "";
 let confidence = 0;
 let step = 0;
@@ -158,12 +170,12 @@ function scanFrame() {
         .then(res => res.json())
         .then(data => {
 
-            if (!data.detections || data.detections.length === 0) return;
+            if (!data.detections) return;
 
-            drawBoxes(data.detections);
+            detections = data.detections;
 
-            currentIssue = data.detections[0].issue;
-            confidence = Math.floor(data.detections[0].confidence * 100);
+            drawBoxes(detections);
+            showIssues();
 
         });
 
@@ -171,7 +183,7 @@ function scanFrame() {
 }
 
 
-// ✅ DRAW
+// ✅ DRAW BOXES
 function drawBoxes(detections) {
 
     canvas.width = video.clientWidth;
@@ -205,23 +217,47 @@ function drawBoxes(detections) {
 }
 
 
-// ✅ TAP QUESTIONS
-video.addEventListener("click", () => {
+// ✅ SHOW ALL ISSUES
+function showIssues() {
 
-    if (!currentIssue) return;
+    let issuesDiv = document.getElementById("issues");
+    issuesDiv.innerHTML = "";
+
+    detections.forEach(d => {
+
+        let card = document.createElement("div");
+        card.className = "issue-card";
+
+        card.innerHTML = `
+            <b>${d.issue}</b><br>
+            ${Math.floor(d.confidence * 100)}%
+            <br>
+            <button onclick="selectIssue('${d.issue}', ${Math.floor(d.confidence * 100)})">Analyze</button>
+        `;
+
+        issuesDiv.appendChild(card);
+    });
+}
+
+
+// ✅ SELECT ISSUE
+function selectIssue(issue, conf) {
+
+    currentIssue = issue;
+    confidence = conf;
 
     step = 1;
     askQuestion();
-});
+}
 
 
-// ✅ QUESTIONS
+// ✅ QUESTION FLOW
 function askQuestion() {
 
     let qDiv = document.getElementById("questions");
 
     let card = document.createElement("div");
-    card.className = "card";
+    card.className = "question-card";
 
     if (step === 1) {
         card.innerHTML = `
@@ -265,15 +301,16 @@ function askQuestion() {
 }
 
 
-// ✅ CONFIDENCE
-function nextStep(answer) {
+// ✅ CONFIDENCE UPDATE
+function nextStep(ans) {
 
     if (step === 1) {
-        confidence += answer ? 10 : -5;
+        confidence += ans ? 10 : -5;
         step = 2;
     }
+
     else if (step === 2) {
-        confidence += answer ? 5 : -5;
+        confidence += ans ? 5 : -5;
         step = 3;
     }
 
