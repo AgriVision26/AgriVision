@@ -26,9 +26,8 @@
 
 <p id="status">System Ready</p>
 
-<!-- ✅ QUESTIONS WILL APPEAR HERE -->
+<!-- QUESTIONS / RESULTS -->
 <div id="questions" style="margin-top:20px;"></div>
-
 
 <script>
 
@@ -36,14 +35,12 @@ let video = document.getElementById("video");
 let canvas = document.getElementById("overlay");
 let ctx = canvas.getContext("2d");
 
-// ✅ YOUR BACKEND
 const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
 
-
-// ✅ STEP 2 — START CAMERA
+// ✅ START CAMERA
 async function startCamera() {
 
-    document.getElementById("status").innerText = "Requesting camera...";
+    document.getElementById("status").innerText = "Starting camera...";
 
     try {
         let stream = await navigator.mediaDevices.getUserMedia({
@@ -54,16 +51,15 @@ async function startCamera() {
         video.srcObject = stream;
         await video.play();
 
-        document.getElementById("status").innerText = "Camera started ✅";
+        document.getElementById("status").innerText = "Camera ready ✅";
 
     } catch (err) {
         document.getElementById("status").innerText =
-            "Camera FAILED: " + err.name;
+            "Camera FAILED";
     }
 }
 
-
-// ✅ STEP 3 — SCAN FRAME
+// ✅ SCAN FRAME
 function scanFrame() {
 
     if (!video.srcObject) {
@@ -82,7 +78,7 @@ function scanFrame() {
     tempCanvas.toBlob(blob => {
 
         let formData = new FormData();
-        formData.append("file", blob, "frame.jpg");
+        formData.append("file", blob);
 
         document.getElementById("status").innerText = "Analyzing...";
 
@@ -94,27 +90,18 @@ function scanFrame() {
         .then(data => {
 
             drawBoxes(data.detections);
-
-            // ✅ STEP 4 — SHOW QUESTIONS
             showQuestions(data.detections);
 
             document.getElementById("status").innerText =
                 "Detected " + data.detections.length + " issue(s)";
 
-        })
-        .catch(err => {
-
-            document.getElementById("status").innerText =
-                "Backend error ❌";
-
-            console.log(err);
         });
 
     }, "image/jpeg");
 }
 
 
-// ✅ STEP 5 — DRAW DETECTIONS
+// ✅ DRAW BOXES
 function drawBoxes(detections) {
 
     canvas.width = video.clientWidth;
@@ -148,12 +135,10 @@ function drawBoxes(detections) {
 }
 
 
-// ✅ STEP 6 — CREATE QUESTIONS UI
+// ✅ SHOW QUESTIONS
 function showQuestions(detections) {
 
     let qDiv = document.getElementById("questions");
-
-    // clear old questions
     qDiv.innerHTML = "";
 
     detections.forEach(d => {
@@ -165,7 +150,7 @@ function showQuestions(detections) {
         block.style.padding = "10px";
 
         block.innerHTML = `
-            <p><b>${d.issue}</b></p>
+            <h3>${d.issue}</h3>
             <p>Is this affecting multiple leaves?</p>
 
             <button onclick="answer('${d.issue}', 'YES')">YES</button>
@@ -177,15 +162,60 @@ function showQuestions(detections) {
 }
 
 
-// ✅ STEP 7 — HANDLE USER INPUT
+// ✅ HANDLE ANSWER (THIS IS THE FIX)
 function answer(issue, response) {
 
-    alert("Response recorded:\n" + issue + " → " + response);
+    let qDiv = document.getElementById("questions");
+    qDiv.innerHTML = "";
 
+    let result = document.createElement("div");
+
+    result.style.border = "2px solid #00ff88";
+    result.style.margin = "20px";
+    result.style.padding = "20px";
+
+    let recommendation = "";
+
+    if (issue === "Chlorosis") {
+        recommendation = (response === "YES")
+            ? "High likelihood nutrient deficiency. Check nitrogen levels."
+            : "Minor chlorosis. Monitor plant.";
+    }
+
+    else if (issue === "Leaf Burn") {
+        recommendation = (response === "YES")
+            ? "Possible overfeeding. Reduce nutrients."
+            : "Localized burn. Check lighting.";
+    }
+
+    else {
+        recommendation = "Further inspection recommended.";
+    }
+
+    result.innerHTML = `
+        <h2>Diagnosis Result ✅</h2>
+
+        <p><b>Issue:</b> ${issue}</p>
+        <p><b>Your Answer:</b> ${response}</p>
+
+        <p><b>Recommendation:</b></p>
+        <p>${recommendation}</p>
+
+        <br>
+        <button onclick="resetApp()">Scan Again</button>
+    `;
+
+    qDiv.appendChild(result);
+}
+
+
+// ✅ RESET SYSTEM
+function resetApp() {
+    document.getElementById("questions").innerHTML = "";
+    document.getElementById("status").innerText = "Ready for next scan";
 }
 
 </script>
 
 </body>
 </html>
-``
