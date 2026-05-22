@@ -12,44 +12,58 @@
             color:#00ff88;
             font-family:Arial;
             text-align:center;
+            overflow:hidden;
         }
 
-        .container {
-            max-width: 600px;
-            margin:auto;
-            padding:20px;
+        .top-bar {
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:10px;
+            padding:10px;
         }
 
-        .card {
-            background:#111820;
-            border-radius:15px;
-            padding:20px;
-            margin-top:15px;
-            box-shadow:0 0 20px rgba(0,255,136,0.1);
+        .top-bar img {
+            width:120px;
+        }
+
+        video {
+            width:100vw;
+            height:70vh;
+            object-fit:cover;
+        }
+
+        canvas {
+            position:absolute;
+            top:0;
+            left:0;
+            width:100vw;
+            height:70vh;
+            pointer-events:none;
+        }
+
+        .controls {
+            padding:10px;
         }
 
         button {
             background:#00ff88;
             color:black;
             border:none;
-            padding:10px 20px;
-            margin:5px;
+            padding:12px 25px;
             border-radius:10px;
             font-size:16px;
-            cursor:pointer;
         }
 
-        button:hover {
-            background:#00cc6a;
-        }
-
-        video {
-            border-radius:15px;
+        .card {
+            position:fixed;
+            bottom:0;
+            left:0;
             width:100%;
-        }
-
-        canvas {
-            border-radius:15px;
+            background:#111820;
+            padding:15px;
+            border-top-left-radius:15px;
+            border-top-right-radius:15px;
         }
     </style>
 
@@ -57,39 +71,34 @@
 
 <body>
 
-<div class="container">
+<!-- ✅ TOP BAR -->
+<div class="top-bar">
+    https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png
+    <h3>AgriVision</h3>
+</div>
 
-<!-- ✅ LOGO -->
-<img src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png"
-     style="width:160px; margin-bottom:10px;">
-
-<h2>AgriVision AI Scanner</h2>
-
-<div style="position:relative; display:inline-block; width:100%;">
+<!-- ✅ CAMERA -->
+<div style="position:relative;">
     <video id="video" autoplay playsinline muted></video>
-
-    <canvas id="overlay"
-        style="position:absolute; top:0; left:0; pointer-events:none; width:100%;">
-    </canvas>
+    <canvas id="overlay"></canvas>
 </div>
 
-<div class="card">
-
-<button onclick="startCamera()">Start Camera</button>
-
-<p id="status">System Ready</p>
-
+<!-- ✅ CONTROLS -->
+<div class="controls">
+    <button id="startBtn" onclick="startCamera()">Start Camera</button>
+    <p id="status">Ready</p>
 </div>
 
+<!-- ✅ QUESTION PANEL -->
 <div id="questions"></div>
-
-</div>
 
 <script>
 
 let video = document.getElementById("video");
 let canvas = document.getElementById("overlay");
 let ctx = canvas.getContext("2d");
+
+let startBtn = document.getElementById("startBtn");
 
 const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
 
@@ -102,7 +111,9 @@ let step = 0;
 // ✅ START CAMERA
 async function startCamera() {
 
-    document.getElementById("status").innerText = "Starting camera...";
+    startBtn.style.display = "none"; // ✅ HIDE BUTTON
+
+    document.getElementById("status").innerText = "Starting...";
 
     try {
         let stream = await navigator.mediaDevices.getUserMedia({
@@ -112,13 +123,13 @@ async function startCamera() {
         video.srcObject = stream;
         await video.play();
 
-        document.getElementById("status").innerText = "Live scanning ✅";
+        document.getElementById("status").innerText = "Live ✅";
 
         scanning = true;
         autoScan();
 
     } catch {
-        document.getElementById("status").innerText = "Camera FAILED";
+        document.getElementById("status").innerText = "Camera error";
     }
 }
 
@@ -204,7 +215,7 @@ function drawBoxes(detections) {
 }
 
 
-// ✅ TAP CAMERA TO ASK QUESTIONS
+// ✅ TAP FOR QUESTIONS
 video.addEventListener("click", () => {
 
     if (!currentIssue) return;
@@ -214,11 +225,10 @@ video.addEventListener("click", () => {
 });
 
 
-// ✅ QUESTION FLOW
+// ✅ QUESTIONS UI
 function askQuestion() {
 
     let qDiv = document.getElementById("questions");
-    qDiv.innerHTML = "";
 
     let card = document.createElement("div");
     card.className = "card";
@@ -226,7 +236,7 @@ function askQuestion() {
     if (step === 1) {
         card.innerHTML = `
             <h3>${currentIssue}</h3>
-            <p>Is this affecting multiple leaves?</p>
+            <p>Affects multiple leaves?</p>
 
             <button onclick="nextStep(true)">YES</button>
             <button onclick="nextStep(false)">NO</button>
@@ -235,7 +245,7 @@ function askQuestion() {
 
     else if (step === 2) {
         card.innerHTML = `
-            <p>Have you recently changed nutrients?</p>
+            <p>Nutrient change recently?</p>
 
             <button onclick="nextStep(true)">YES</button>
             <button onclick="nextStep(false)">NO</button>
@@ -244,43 +254,36 @@ function askQuestion() {
 
     else if (step === 3) {
 
-        let recommendation = "";
-
-        if (currentIssue === "Chlorosis") {
-            recommendation = "Likely nitrogen deficiency. Adjust nutrients.";
-        }
-        else if (currentIssue === "Leaf Burn") {
-            recommendation = "Possible overfeeding or light stress.";
-        }
-        else {
-            recommendation = "Further inspection required.";
-        }
+        let recommendation = currentIssue === "Chlorosis"
+            ? "Check nitrogen levels"
+            : currentIssue === "Leaf Burn"
+            ? "Reduce nutrients/light"
+            : "Inspect further";
 
         card.innerHTML = `
-            <h2>Diagnosis ✅</h2>
-
-            <p><b>Issue:</b> ${currentIssue}</p>
-            <p><b>Confidence:</b> ${confidence}%</p>
-
+            <h3>Diagnosis ✅</h3>
+            <p>${currentIssue}</p>
+            <p>${confidence}% confidence</p>
             <p>${recommendation}</p>
 
             <button onclick="resetFlow()">Close</button>
         `;
     }
 
+    qDiv.innerHTML = "";
     qDiv.appendChild(card);
 }
 
 
-// ✅ CONFIDENCE UPDATE
+// ✅ CONFIDENCE LOGIC
 function nextStep(answer) {
 
     if (step === 1) {
-        confidence = answer ? confidence + 10 : confidence - 5;
+        confidence += answer ? 10 : -5;
         step = 2;
     }
     else if (step === 2) {
-        confidence = answer ? confidence + 5 : confidence - 5;
+        confidence += answer ? 5 : -5;
         step = 3;
     }
 
