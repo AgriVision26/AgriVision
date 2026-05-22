@@ -22,7 +22,7 @@
 
         video {
             width:100%;
-            max-height:60vh;
+            max-height:55vh;
             object-fit:cover;
             border-radius:15px;
         }
@@ -32,7 +32,7 @@
             top:0;
             left:0;
             width:100%;
-            max-height:60vh;
+            max-height:55vh;
             pointer-events:none;
         }
 
@@ -45,7 +45,7 @@
             border-radius:10px;
         }
 
-        .issue-card, .history-card {
+        .issue-card {
             background:#111820;
             padding:10px;
             margin:5px;
@@ -58,15 +58,36 @@
             justify-content:center;
         }
 
-        .section-title {
-            margin-top:15px;
-        }
-
         .question-card {
             background:#111820;
             margin:10px;
             padding:15px;
             border-radius:15px;
+        }
+
+        /* ✅ PINNED HISTORY PANEL */
+        .history-panel {
+            position:fixed;
+            bottom:0;
+            left:0;
+            width:100%;
+            background:#111820;
+            padding:10px;
+            border-top-left-radius:15px;
+            border-top-right-radius:15px;
+            max-height:30vh;
+            overflow-y:auto;
+        }
+
+        .history-card {
+            margin:5px;
+            padding:8px;
+            background:#1a222b;
+            border-radius:10px;
+        }
+
+        .spacer {
+            height:160px; /* ✅ keeps content above history visible */
         }
     </style>
 </head>
@@ -74,7 +95,6 @@
 <body>
 
 <!-- ✅ LOGO -->
-<img class="logo" src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png">
 
 <h2>AgriVision AI Scanner</h2>
 
@@ -84,22 +104,29 @@
     <canvas id="overlay"></canvas>
 </div>
 
-<!-- START -->
+<!-- CONTROLS -->
 <div>
     <button id="startBtn" onclick="startCamera()">Start Camera</button>
     <p id="status">Ready</p>
 </div>
 
 <!-- ISSUES -->
-<h3 class="section-title">Detected Issues</h3>
+<h3>Detected Issues</h3>
 <div id="issues" class="list"></div>
-
-<!-- HISTORY -->
-<h3 class="section-title">Scan History</h3>
-<div id="history" class="list"></div>
 
 <!-- QUESTIONS -->
 <div id="questions"></div>
+
+<!-- ✅ SPACER (PREVENT OVERLAP) -->
+<div class="spacer"></div>
+
+<!-- ✅ PINNED HISTORY -->
+<div class="history-panel">
+
+    <h4>Scan History</h4>
+    <div id="history"></div>
+
+</div>
 
 <script>
 
@@ -118,7 +145,7 @@ let step = 0;
 let scanning = false;
 
 
-// ✅ LOAD SAVED HISTORY
+// ✅ LOAD HISTORY
 function loadHistory() {
     let history = JSON.parse(localStorage.getItem("scans") || "[]");
 
@@ -131,8 +158,7 @@ function loadHistory() {
         card.className = "history-card";
 
         card.innerHTML = `
-            <b>${item.issue}</b><br>
-            ${item.confidence}%<br>
+            <b>${item.issue}</b> - ${item.confidence}%<br>
             <small>${item.time}</small>
         `;
 
@@ -166,6 +192,7 @@ async function startCamera() {
     document.getElementById("status").innerText = "Starting...";
 
     try {
+
         let stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: "environment" }
         });
@@ -186,11 +213,9 @@ async function startCamera() {
 
 // ✅ AUTO SCAN
 function autoScan() {
-
     if (!scanning) return;
 
     scanFrame();
-
     setTimeout(autoScan, 2000);
 }
 
@@ -224,7 +249,6 @@ function scanFrame() {
 
             drawBoxes(detections);
             showIssues();
-
         });
 
     }, "image/jpeg");
@@ -241,13 +265,10 @@ function drawBoxes(detections) {
 
     detections.forEach(d => {
 
-        let scaleX = canvas.width / video.videoWidth;
-        let scaleY = canvas.height / video.videoHeight;
-
-        let x = d.bbox[0] * scaleX;
-        let y = d.bbox[1] * scaleY;
-        let w = (d.bbox[2] - d.bbox[0]) * scaleX;
-        let h = (d.bbox[3] - d.bbox[1]) * scaleY;
+        let x = d.bbox[0];
+        let y = d.bbox[1];
+        let w = d.bbox[2] - d.bbox[0];
+        let h = d.bbox[3] - d.bbox[1];
 
         ctx.strokeStyle = "#00ff88";
         ctx.strokeRect(x, y, w, h);
@@ -263,10 +284,10 @@ function showIssues() {
 
     detections.forEach(d => {
 
+        let conf = Math.floor(d.confidence * 100);
+
         let card = document.createElement("div");
         card.className = "issue-card";
-
-        let conf = Math.floor(d.confidence * 100);
 
         card.innerHTML = `
             ${d.issue}<br>
@@ -323,13 +344,14 @@ function askQuestion() {
             ? "Reduce nutrients/light"
             : "Inspect further";
 
-        saveScan(currentIssue, confidence); // ✅ SAVE HERE
+        saveScan(currentIssue, confidence);
 
         card.innerHTML = `
             <h3>Diagnosis ✅</h3>
             <p>${currentIssue}</p>
             <p>${confidence}% confidence</p>
             <p>${rec}</p>
+
             <button onclick="resetFlow()">Close</button>
         `;
     }
@@ -346,6 +368,7 @@ function nextStep(ans) {
         confidence += ans ? 10 : -5;
         step = 2;
     }
+
     else if (step === 2) {
         confidence += ans ? 5 : -5;
         step = 3;
@@ -364,7 +387,7 @@ function resetFlow() {
 }
 
 
-// ✅ LOAD HISTORY ON PAGE LOAD
+// ✅ LOAD HISTORY ON START
 loadHistory();
 
 </script>
