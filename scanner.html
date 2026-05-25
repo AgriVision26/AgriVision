@@ -5,8 +5,10 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- ✅ FIXED SCRIPT TAG -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js    <style>
+    <!-- ✅ FIXED SCRIPT -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
         body {
             margin:0;
             background:#0b0f14;
@@ -35,8 +37,7 @@
 
         video {
             width:100%;
-            max-height:55vh;
-            object-fit:cover;
+            max-height:50vh;
         }
 
         canvas {
@@ -49,8 +50,8 @@
 
         .issue-card {
             background:#111820;
-            margin:5px;
             padding:10px;
+            margin:5px;
             border-radius:10px;
         }
     </style>
@@ -80,6 +81,7 @@
     <canvas id="overlay"></canvas>
 </div>
 
+<!-- ✅ RESULTS -->
 <div id="issues"></div>
 
 <script>
@@ -93,6 +95,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ✅ BACKEND
 const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
 
+// ✅ ELEMENTS
 let video = document.getElementById("video");
 let canvas = document.getElementById("overlay");
 let ctx = canvas.getContext("2d");
@@ -104,7 +107,10 @@ let scanning = false;
 // ✅ START CAMERA
 async function startCamera() {
 
+    document.getElementById("status").innerText = "Starting camera...";
+
     try {
+
         stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: "environment" }
         });
@@ -117,16 +123,19 @@ async function startCamera() {
         scanning = true;
         autoScan();
 
-    } catch {
-        document.getElementById("status").innerText = "Camera FAILED";
+    } catch (err) {
+        console.log(err);
+        document.getElementById("status").innerText = "Camera FAILED ❌";
     }
 }
 
 
-// ✅ AUTO SCAN
+// ✅ AUTO SCAN LOOP
 function autoScan() {
     if (!scanning) return;
+
     scanFrame();
+
     setTimeout(autoScan, 2000);
 }
 
@@ -159,6 +168,9 @@ function scanFrame() {
             drawBoxes(data.detections);
             showIssues(data.detections);
 
+        })
+        .catch(err => {
+            console.log("Backend error:", err);
         });
 
     }, "image/jpeg");
@@ -187,7 +199,7 @@ function drawBoxes(detections) {
 }
 
 
-// ✅ SHOW ISSUES
+// ✅ SHOW RESULTS
 function showIssues(detections) {
 
     let div = document.getElementById("issues");
@@ -228,6 +240,7 @@ async function logout() {
     stopCamera();
 
     await supabaseClient.auth.signOut();
+
     window.location.href = "index.html";
 }
 
