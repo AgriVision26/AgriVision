@@ -3,7 +3,7 @@
 <head>
     <title>AgriVision Login</title>
 
-    <!-- ✅ FIXED SUPABASE SCRIPT -->
+    <!-- ✅ CORRECT SUPABASE SCRIPT -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -27,21 +27,21 @@
 
 <script>
 
-// ✅ REPLACE THESE WITH YOUR REAL KEYS
-const SUPABASE_URL = "https://fmrdvvtawadbcrglsbnj.supabase.co/rest/v1/";
+// ✅ ✅ YOUR REAL KEYS (FIXED)
+const SUPABASE_URL = "https://fmrdvvtawadbcrglsbnj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_IvVJOGaqKo7pUkRNVlb4_w_15agKRTG";
 
-// ✅ CREATE CLIENT (THIS WAS YOUR PROBLEM BEFORE)
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ✅ CREATE CLIENT
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 
-// ✅ SIGN UP
+// ✅ SIGN UP FUNCTION
 async function signup() {
 
     let email = document.getElementById("email").value;
     let password = document.getElementById("password").value;
 
-    let { error } = await client.auth.signUp({
+    let { error } = await supabaseClient.auth.signUp({
         email: email,
         password: password
     });
@@ -54,13 +54,13 @@ async function signup() {
 }
 
 
-// ✅ LOGIN
+// ✅ LOGIN FUNCTION
 async function login() {
 
     let email = document.getElementById("email").value;
     let password = document.getElementById("password").value;
 
-    let { error } = await client.auth.signInWithPassword({
+    let { error } = await supabaseClient.auth.signInWithPassword({
         email: email,
         password: password
     });
