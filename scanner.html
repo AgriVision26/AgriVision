@@ -5,10 +5,8 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- ✅ SUPABASE -->
-    https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2script>
-
-    <style>
+    <!-- ✅ FIXED SCRIPT TAG -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js    <style>
         body {
             margin:0;
             background:#0b0f14;
@@ -25,6 +23,16 @@
             z-index:1000;
         }
 
+        button {
+            margin:5px;
+            padding:10px 15px;
+            border:none;
+            border-radius:8px;
+            background:#00ff88;
+            color:black;
+            font-weight:bold;
+        }
+
         video {
             width:100%;
             max-height:55vh;
@@ -39,38 +47,23 @@
             pointer-events:none;
         }
 
-        button {
-            margin:5px;
-            padding:10px 15px;
-            border:none;
-            border-radius:8px;
-            background:#00ff88;
-            color:black;
-            font-weight:bold;
-        }
-
         .issue-card {
             background:#111820;
             margin:5px;
             padding:10px;
             border-radius:10px;
         }
-
-        .question-card {
-            background:#111820;
-            margin:10px;
-            padding:15px;
-            border-radius:15px;
-        }
     </style>
 </head>
 
 <body>
 
-<!-- ✅ TOP BAR -->
+<!-- ✅ FIXED NAV BAR -->
 <div class="top-bar">
 
-    dashboard.html<button>⬅ Dashboard</button></a>
+    <a href="dashboard.html">
+        <button>⬅ Dashboard</button>
+    </a>
 
     <button onclick="startCamera()">Start</button>
     <button onclick="stopCamera()">Stop</button>
@@ -87,11 +80,7 @@
     <canvas id="overlay"></canvas>
 </div>
 
-<!-- ✅ ISSUES -->
 <div id="issues"></div>
-
-<!-- ✅ QUESTIONS -->
-<div id="questions"></div>
 
 <script>
 
@@ -110,21 +99,6 @@ let ctx = canvas.getContext("2d");
 
 let stream = null;
 let scanning = false;
-
-let detections = [];
-let currentIssue = "";
-let confidence = 0;
-let step = 0;
-
-// ✅ COLORS
-const issueColors = {
-    "Chlorosis": "#FFD700",
-    "Leaf Burn": "#FF4C4C"
-};
-
-function getColor(issue) {
-    return issueColors[issue] || "#00ff88";
-}
 
 
 // ✅ START CAMERA
@@ -151,9 +125,7 @@ async function startCamera() {
 
 // ✅ AUTO SCAN
 function autoScan() {
-
     if (!scanning) return;
-
     scanFrame();
     setTimeout(autoScan, 2000);
 }
@@ -184,10 +156,8 @@ function scanFrame() {
 
             if (!data.detections) return;
 
-            detections = data.detections;
-
-            drawBoxes(detections);
-            showIssues();
+            drawBoxes(data.detections);
+            showIssues(data.detections);
 
         });
 
@@ -205,126 +175,36 @@ function drawBoxes(detections) {
 
     detections.forEach(d => {
 
-        let color = getColor(d.issue);
-
         let x = d.bbox[0];
         let y = d.bbox[1];
         let w = d.bbox[2] - d.bbox[0];
         let h = d.bbox[3] - d.bbox[1];
 
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#00ff88";
+        ctx.lineWidth = 2;
         ctx.strokeRect(x, y, w, h);
-
-        ctx.fillStyle = color;
-        ctx.fillText(
-            d.issue + " (" + Math.floor(d.confidence * 100) + "%)",
-            x,
-            y - 5
-        );
     });
 }
 
 
 // ✅ SHOW ISSUES
-function showIssues() {
+function showIssues(detections) {
 
     let div = document.getElementById("issues");
     div.innerHTML = "";
 
     detections.forEach(d => {
 
-        let color = getColor(d.issue);
-        let conf = Math.floor(d.confidence * 100);
-
         let card = document.createElement("div");
         card.className = "issue-card";
-        card.style.border = "2px solid " + color;
 
         card.innerHTML = `
-            <b style="color:${color}">${d.issue}</b><br>
-            ${conf}%<br>
-            <button onclick="selectIssue('${d.issue}', ${conf})">Analyze</button>
+            <b>${d.issue}</b><br>
+            ${Math.floor(d.confidence * 100)}%
         `;
 
         div.appendChild(card);
     });
-}
-
-
-// ✅ SELECT ISSUE
-function selectIssue(issue, conf) {
-    currentIssue = issue;
-    confidence = conf;
-    step = 1;
-    askQuestion();
-}
-
-
-// ✅ QUESTION FLOW
-function askQuestion() {
-
-    let qDiv = document.getElementById("questions");
-
-    let card = document.createElement("div");
-    card.className = "question-card";
-
-    if (step === 1) {
-        card.innerHTML = `
-            <h3>${currentIssue}</h3>
-            <p>Affects multiple leaves?</p>
-            <button onclick="nextStep(true)">YES</button>
-            <button onclick="nextStep(false)">NO</button>
-        `;
-    }
-
-    else if (step === 2) {
-        card.innerHTML = `
-            <p>Nutrient change recently?</p>
-            <button onclick="nextStep(true)">YES</button>
-            <button onclick="nextStep(false)">NO</button>
-        `;
-    }
-
-    else {
-
-        saveScan(currentIssue, confidence);
-
-        card.innerHTML = `
-            <h3>Diagnosis ✅</h3>
-            <p>${currentIssue}</p>
-            <p>${confidence}% confidence</p>
-            <button onclick="resetFlow()">Close</button>
-        `;
-    }
-
-    qDiv.innerHTML = "";
-    qDiv.appendChild(card);
-}
-
-
-// ✅ CONFIDENCE UPDATE
-function nextStep(ans) {
-
-    if (step === 1) {
-        confidence += ans ? 10 : -5;
-        step = 2;
-    }
-
-    else {
-        confidence += ans ? 5 : -5;
-        step = 3;
-    }
-
-    confidence = Math.max(0, Math.min(100, confidence));
-
-    askQuestion();
-}
-
-
-// ✅ RESET QUESTIONS
-function resetFlow() {
-    document.getElementById("questions").innerHTML = "";
 }
 
 
@@ -349,23 +229,6 @@ async function logout() {
 
     await supabaseClient.auth.signOut();
     window.location.href = "index.html";
-}
-
-
-// ✅ SAVE SCAN TO DATABASE
-async function saveScan(issue, conf) {
-
-    let { data } = await supabaseClient.auth.getUser();
-
-    if (!data.user) return;
-
-    await supabaseClient.from("scans").insert([
-        {
-            user_id: data.user.id,
-            issue: issue,
-            confidence: conf
-        }
-    ]);
 }
 
 </script>
