@@ -3,8 +3,8 @@
 <head>
     <title>AgriVision Login</title>
 
-    <!-- ✅ Supabase Library -->
-    
+    <!-- ✅ FIXED SUPABASE SCRIPT -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body style="background:#0b0f14; color:#00ff88; text-align:center; font-family:Arial;">
@@ -27,53 +27,52 @@
 
 <script>
 
-    // ✅ PASTE YOUR REAL KEYS HERE
-   const SUPABASE_URL = "https://abcd1234.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+// ✅ REPLACE THESE WITH YOUR REAL KEYS
+const SUPABASE_URL = "https://fmrdvvtawadbcrglsbnj.supabase.co/rest/v1/";
+const SUPABASE_KEY = "sb_publishable_IvVJOGaqKo7pUkRNVlb4_w_15agKRTG";
 
-    // ✅ Create Supabase client
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ✅ CREATE CLIENT (THIS WAS YOUR PROBLEM BEFORE)
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 
-    // ✅ SIGN UP FUNCTION
-    async function signup() {
+// ✅ SIGN UP
+async function signup() {
 
-        let email = document.getElementById("email").value;
-        let password = document.getElementById("password").value;
+    let email = document.getElementById("email").value;
+    let password = document.getElementById("password").value;
 
-        let { error } = await supabaseClient.auth.signUp({
-            email: email,
-            password: password
-        });
+    let { error } = await client.auth.signUp({
+        email: email,
+        password: password
+    });
 
-        if (error) {
-            document.getElementById("status").innerText = error.message;
-        } else {
-            document.getElementById("status").innerText = "Account created ✅";
-        }
+    if (error) {
+        document.getElementById("status").innerText = error.message;
+    } else {
+        document.getElementById("status").innerText = "Account created ✅";
     }
+}
 
 
-    // ✅ LOGIN FUNCTION
-    async function login() {
+// ✅ LOGIN
+async function login() {
 
-        let email = document.getElementById("email").value;
-        let password = document.getElementById("password").value;
+    let email = document.getElementById("email").value;
+    let password = document.getElementById("password").value;
 
-        let { error } = await supabaseClient.auth.signInWithPassword({
-            email: email,
-            password: password
-        });
+    let { error } = await client.auth.signInWithPassword({
+        email: email,
+        password: password
+    });
 
-        if (error) {
-            document.getElementById("status").innerText = error.message;
-        } else {
-            window.location.href = "dashboard.html";
-        }
+    if (error) {
+        document.getElementById("status").innerText = error.message;
+    } else {
+        window.location.href = "dashboard.html";
     }
+}
 
 </script>
 
 </body>
 </html>
-``
