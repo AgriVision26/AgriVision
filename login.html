@@ -1,25 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
+    <title>AgriVision Login</title>
+
+    <!-- ✅ Supabase Library -->
+    
 </head>
 
-<body style="background:#0b0f14; color:#00ff88; text-align:center;">
+<body style="background:#0b0f14; color:#00ff88; text-align:center; font-family:Arial;">
 
-<h1>Login</h1>
+<h1>AgriVision Login</h1>
 
-<input placeholder="Email"><br><br>
-<input placeholder="Password" type="password"><br><br>
+<input id="email" placeholder="Email"><br><br>
+<input id="password" type="password" placeholder="Password"><br><br>
 
-dashboard.html
-    <button>Login</button>
-</a>
+<button onclick="signup()">Sign Up</button>
+<button onclick="login()">Login</button>
+
+<p id="status"></p>
 
 <br><br>
 
-index.html
+<a href="index.html">
     <button>Back</button>
 </a>
 
+<script>
+
+    // ✅ PASTE YOUR REAL KEYS HERE
+   const SUPABASE_URL = "https://abcd1234.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+
+    // ✅ Create Supabase client
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+
+    // ✅ SIGN UP FUNCTION
+    async function signup() {
+
+        let email = document.getElementById("email").value;
+        let password = document.getElementById("password").value;
+
+        let { error } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password
+        });
+
+        if (error) {
+            document.getElementById("status").innerText = error.message;
+        } else {
+            document.getElementById("status").innerText = "Account created ✅";
+        }
+    }
+
+
+    // ✅ LOGIN FUNCTION
+    async function login() {
+
+        let email = document.getElementById("email").value;
+        let password = document.getElementById("password").value;
+
+        let { error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) {
+            document.getElementById("status").innerText = error.message;
+        } else {
+            window.location.href = "dashboard.html";
+        }
+    }
+
+</script>
+
 </body>
 </html>
+``
