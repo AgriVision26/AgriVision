@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AgriVision</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            margin:0;
+            background:#0b0f14;
+            color:#00ff88;
+            font-family:Arial;
+            text-align:center;
+        }
+
+        .camera-container {
+            position:sticky;
+            top:0;
+            background:#0b0f14;
+            z-index:1000;
+            padding-bottom:10px;
+        }
+
+        /* ✅ LOGO FIX (THIS IS WHAT WAS MISSING BEFORE) */
+        .logo {
+            width:90px;
+            display:block;
+            margin:10px auto;
+        }
+
+        video {
+            width:100%;
+            max-height:50vh;
+            object-fit:cover;
+            border-radius:12px;
+        }
+
+        canvas {
+            position:absolute;
+            top:0;
+            left:0;
+            width:100%;
+            max-height:50vh;
+            pointer-events:none;
+        }
+
+        button {
+            border:none;
+            padding:10px 15px;
+            margin:5px;
+            border-radius:10px;
+            font-weight:bold;
+            background:#00ff88;
+            color:black;
+        }
+
+        .list {
+            display:flex;
+            flex-wrap:wrap;
+            justify-content:center;
+        }
+
+        .issue-card {
+            background:#111820;
+            padding:10px;
+            margin:5px;
+            border-radius:10px;
+        }
+
+        .question-card {
+            background:#111820;
+            margin:10px;
+            padding:15px;
+            border-radius:15px;
+        }
+
+        .history-modal {
+            position:fixed;
+            bottom:0;
+            left:0;
+            width:100%;
+            height:60%;
+            background:#111820;
+            display:none;
+            overflow-y:auto;
+            padding:15px;
+        }
+
+        .history-card {
+            background:#1a222b;
+            margin:5px;
+            padding:10px;
+            border-radius:10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="camera-container">
+
+    <!-- ✅ THIS IS THE CORRECT LOGO LINE -->
+    <img class="logo" src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png">
+
+    <h3>AgriVision AI Scanner</h3>
+
+    <div style="position:relative;">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="overlay"></canvas>
+    </div>
+
+    <button id="startBtn" onclick="startCamera()">Start Camera</button>
+    <button onclick="toggleHistory()">View History</button>
+
+    <p id="status">Ready</p>
+
+</div>
+
+<h3>Detected Issues</h3>
+<div id="issues" class="list"></div>
+
+<div id="questions"></div>
+
+<!-- ✅ HISTORY MODAL -->
+<div id="historyModal" class="history-modal">
+    <h3>Scan History</h3>
+    <div id="history"></div>
+    <button onclick="toggleHistory()">Close</button>
+</div>
+
+<script>
+
+let video = document.getElementById("video");
+let canvas = document.getElementById("overlay");
+let ctx = canvas.getContext("2d");
+
+let startBtn = document.getElementById("startBtn");
+
+const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
+
+let detections = [];
+let currentIssue = "";
+let confidence = 0;
+let step = 0;
+let scanning = false;
+
+// ✅ COLOR MAP
+const issueColors = {
+    "Chlorosis": "#FFD700",
+    "Leaf Burn": "#FF4C4C",
+    "Default": "#00ff88"
+};
+
+function getColor(issue) {
+    return issueColors[issue] || issueColors["Default"];
+}
+
+
+// ✅ TOGGLE HISTORY PANEL
+function toggleHistory() {
+    let modal = document.getElementById("historyModal");
+
+    if (modal.style.display === "block") {
+        modal.style.display = "none";
+    } else {
+        modal.style.display = "block";
+    }
+}
+
+
+// ✅ START CAMERA
+async function startCamera() {
+
+    startBtn.style.display = "none";
+    document.getElementById("status").innerText = "Starting...";
+
+    try {
+
+        let stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" }
+        });
+
+        video.srcObject = stream;
+        await video.play();
+
+        document.getElementById("status").innerText = "Live ✅";
+
+        scanning = true;
+        autoScan();
+
+    } catch {
+        document.getElementById("status").innerText = "Camera error";
+    }
+}
+
+
+// ✅ AUTO SCAN
+function autoScan() {
+    if (!scanning) return;
+
+    scanFrame();
+    setTimeout(autoScan, 2000);
+}
+
+
+// ✅ SCAN
+function scanFrame() {
+
+    let tempCanvas = document.createElement("canvas");
+    let tempCtx = tempCanvas.getContext("2d");
+
+    tempCanvas.width = video.videoWidth;
+    tempCanvas.height = video.videoHeight;
+
+    tempCtx.drawImage(video, 0, 0);
+
+    tempCanvas.toBlob(blob => {
+
+        let formData = new FormData();
+        formData.append("file", blob);
+
+        fetch(BACKEND_URL, {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+
+            if (!data.detections) return;
+
+            detections = data.detections;
+
+            drawBoxes(detections);
+            showIssues();
+
+        });
+
+    }, "image/jpeg");
+}
+
+
+// ✅ DRAW BOXES WITH COLORS
+function drawBoxes(detections) {
+
+    canvas.width = video.clientWidth;
+    canvas.height = video.clientHeight;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    detections.forEach(d => {
+
+        let color = getColor(d.issue);
+
+        let x = d.bbox[0];
+        let y = d.bbox[1];
+        let w = d.bbox[2] - d.bbox[0];
+        let h = d.bbox[3] - d.bbox[1];
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = color;
+        ctx.fillText(
+            d.issue + " (" + Math.floor(d.confidence * 100) + "%)",
+            x,
+            y - 5
+        );
+    });
+}
+
+
+// ✅ SHOW ISSUES
+function showIssues() {
+
+    let div = document.getElementById("issues");
+    div.innerHTML = "";
+
+    detections.forEach(d => {
+
+        let conf = Math.floor(d.confidence * 100);
+        let color = getColor(d.issue);
+
+        let card = document.createElement("div");
+        card.className = "issue-card";
+        card.style.border = "2px solid " + color;
+
+        card.innerHTML = `
+            <b style="color:${color}">${d.issue}</b><br>
+            ${conf}%<br>
+            <button style="background:${color}" onclick="selectIssue('${d.issue}', ${conf})">
+                Analyze
+            </button>
+        `;
+
+        div.appendChild(card);
+    });
+}
+
+
+// ✅ SELECT ISSUE
+function selectIssue(issue, conf) {
+    currentIssue = issue;
+    confidence = conf;
+    step = 1;
+    askQuestion();
+}
+
+
+// ✅ QUESTIONS
+function askQuestion() {
+
+    let qDiv = document.getElementById("questions");
+
+    let card = document.createElement("div");
+    card.className = "question-card";
+
+    if (step === 1) {
+        card.innerHTML = `
+            <h3>${currentIssue}</h3>
+            <p>Affects multiple leaves?</p>
+            <button onclick="nextStep(true)">YES</button>
+            <button onclick="nextStep(false)">NO</button>
+        `;
+    }
+    else if (step === 2) {
+        card.innerHTML = `
+            <p>Nutrient change recently?</p>
+            <button onclick="nextStep(true)">YES</button>
+            <button onclick="nextStep(false)">NO</button>
+        `;
+    }
+    else {
+
+        saveScan(currentIssue, confidence);
+
+        card.innerHTML = `
+            <h3>Diagnosis ✅</h3>
+            <p>${currentIssue}</p>
+            <p>${confidence}%</p>
+            <button onclick="resetFlow()">Close</button>
+        `;
+    }
+
+    qDiv.innerHTML = "";
+    qDiv.appendChild(card);
+}
+
+
+// ✅ CONFIDENCE
+function nextStep(ans) {
+
+    if (step === 1) {
+        confidence += ans ? 10 : -5;
+        step = 2;
+    } else {
+        confidence += ans ? 5 : -5;
+        step = 3;
+    }
+
+    confidence = Math.max(0, Math.min(100, confidence));
+    askQuestion();
+}
+
+
+// ✅ SAVE HISTORY
+function saveScan(issue, conf) {
+
+    let history = JSON.parse(localStorage.getItem("scans") || "[]");
+
+    history.push({
+        issue,
+        confidence: conf,
+        time: new Date().toLocaleTimeString()
+    });
+
+    localStorage.setItem("scans", JSON.stringify(history));
+
+    loadHistory();
+}
+
+
+// ✅ LOAD HISTORY
+function loadHistory() {
+
+    let history = JSON.parse(localStorage.getItem("scans") || "[]");
+
+    let div = document.getElementById("history");
+    div.innerHTML = "";
+
+    history.reverse().forEach(item => {
+
+        let card = document.createElement("div");
+        card.className = "history-card";
+
+        card.innerHTML = `
+            <b>${item.issue}</b> - ${item.confidence}%<br>
+            <small>${item.time}</small>
+        `;
+
+        div.appendChild(card);
+    });
+}
+
+
+// ✅ INIT
+loadHistory();
+
+</script>
+
+</body>
+</html>
