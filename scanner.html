@@ -5,7 +5,7 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- ✅ FIXED SCRIPT -->
+    <!-- ✅ CORRECT SUPABASE SCRIPT -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -21,8 +21,14 @@
             position:sticky;
             top:0;
             background:#0b0f14;
-            padding:10px;
+            padding:15px;
             z-index:1000;
+        }
+
+        .logo {
+            width:100px;
+            display:block;
+            margin:0 auto 10px auto;
         }
 
         button {
@@ -38,6 +44,7 @@
         video {
             width:100%;
             max-height:50vh;
+            object-fit:cover;
         }
 
         canvas {
@@ -59,9 +66,13 @@
 
 <body>
 
-<!-- ✅ FIXED NAV BAR -->
+<!-- ✅ TOP BAR WITH LOGO -->
 <div class="top-bar">
 
+    <!-- ✅ YOUR LOGO (CHANGE VERSION NUMBER IF NEEDED) -->
+    <img src="https://raw.githubusercontent.com/AgriVision26/AgriVision/main/logo.png?v=2" class="logo">
+
+    <!-- ✅ NAVIGATION -->
     <a href="dashboard.html">
         <button>⬅ Dashboard</button>
     </a>
@@ -86,16 +97,15 @@
 
 <script>
 
-// ✅ SUPABASE
+// ✅ SUPABASE CONFIG
 const SUPABASE_URL = "https://fmrdvvtawadbcrglsbnj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_IvVJOGaqKo7pUkRNVlb4_w_15agKRTG";
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ✅ BACKEND
+// ✅ BACKEND AI API
 const BACKEND_URL = "https://agrivision-p5m7.onrender.com/analyze";
 
-// ✅ ELEMENTS
 let video = document.getElementById("video");
 let canvas = document.getElementById("overlay");
 let ctx = canvas.getContext("2d");
@@ -140,7 +150,7 @@ function autoScan() {
 }
 
 
-// ✅ SCAN FRAME
+// ✅ SEND FRAME TO AI
 function scanFrame() {
 
     let tempCanvas = document.createElement("canvas");
@@ -170,14 +180,14 @@ function scanFrame() {
 
         })
         .catch(err => {
-            console.log("Backend error:", err);
+            console.log("API error:", err);
         });
 
     }, "image/jpeg");
 }
 
 
-// ✅ DRAW BOXES
+// ✅ DRAW DETECTION BOXES
 function drawBoxes(detections) {
 
     canvas.width = video.clientWidth;
